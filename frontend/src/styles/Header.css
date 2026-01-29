@@ -1,0 +1,91 @@
+/* Main header */
+.app-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    height: 80px;
+    padding: 16px 32px;
+    background-color: #0f172a;
+    /* dark slate */
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1000;
+}
+
+.dashboard-header{
+    display: flex;
+    flex-direction: column;
+    margin-bottom: -10px;
+}
+
+/* Dashboard text section */
+.dashboard-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.dashboard-header p {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+/* Right section (profile + logout) */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Profile image */
+.profile-image {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 2px solid #334155;
+    object-fit: cover;
+}
+
+/* Logout button */
+.logout-btn {
+    padding: 8px 18px;
+    background-color: #ef4444;
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+.logout-btn:active {
+    transform: scale(0.97);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        height: auto;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .header-right {
+        align-self: flex-end;
+    }
+
+    .dashboard-header h2 {
+        font-size: 18px;
+    }
+}

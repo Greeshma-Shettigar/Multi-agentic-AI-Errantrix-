@@ -1,0 +1,148 @@
+/* Container */
+.intro-container {
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(
+            180deg,
+                #f3d6c9 0%,
+                #e3bfb6 30%,
+                #b9839c 60%,
+                #4a235a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 🌍 EARTH */
+.earth {
+    width: 260px;
+    /* bigger earth */
+    opacity: 0;
+    transform: scale(0.6);
+    animation: earthPop 1.6s ease-out forwards;
+}
+
+/* Earth pop animation */
+@keyframes earthPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+
+    70% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 📝 BRAND TEXT */
+.brand {
+    margin-top: 20px;
+    font-size: 64px;
+    font-weight: 800;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+        "Segoe UI", sans-serif;
+    color: #fbe4d8;
+        
+    opacity: 0;
+    animation: textFade 1s ease forwards;
+    animation-delay: 1.8s;
+    letter-spacing: 0.12em;
+}
+
+.brand .x {
+    position: relative;
+}
+
+/* Brand appear */
+@keyframes textFade {
+    to {
+        opacity: 1;
+    }
+}
+
+/* 🛵 SCOOTER */
+.scooter {
+    position: absolute;
+    width: 140px;
+    /* slightly smaller */
+    bottom: 42%;
+    left: -180px;
+    /* fully off-screen initially */
+    opacity: 0;
+    animation: scooterMove 2.4s linear forwards;
+    animation-delay: 3s;
+    /* AFTER earth + text */
+}
+
+/* Scooter movement */
+@keyframes scooterMove {
+    0% {
+        opacity: 0;
+        left: -180px;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
+        left: calc(50% + 170px);
+        /* AFTER X of ERRANTRIX */
+    }
+}
+/* 🛵 SCOOTER WRAPPER */
+.scooter-wrapper {
+    position: absolute;
+    bottom: 42%;
+    left: -180px;
+    opacity: 0;
+
+    animation: scooterMove 2.4s linear forwards;
+    animation-delay: 3s;
+}
+.smoke {
+    position: absolute;
+    left: -18px;
+    bottom: 18px;
+}
+
+.smoke span {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    animation: smokeFloat 1.2s infinite ease-out;
+}
+
+.smoke span:nth-child(2) {
+    left: -10px;
+    animation-delay: 0.2s;
+}
+
+.smoke span:nth-child(3) {
+    left: -20px;
+    animation-delay: 0.4s;
+}
+
+@keyframes smokeFloat {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.7;
+    }
+
+    100% {
+        transform: translateY(-20px) scale(1.5);
+        opacity: 0;
+    }
+}

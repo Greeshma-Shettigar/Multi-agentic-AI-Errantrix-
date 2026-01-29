@@ -1,0 +1,68 @@
+body {
+  background: #f4f6f9;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Header */
+.app-header {
+  background: linear-gradient(135deg, #4e73df, #224abe);
+  color: white;
+  padding: 30px;
+  border-radius: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Cards */
+.card {
+  border-radius: 16px !important;
+  border: none !important;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons */
+.btn-modern {
+  background: linear-gradient(135deg, #4e73df, #224abe);
+  color: white;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  padding: 12px;
+}
+
+/* Inputs */
+.form-control {
+  border-radius: 12px !important;
+  padding: 12px !important;
+}
+
+/* Task Cards */
+.task-card {
+  background: white;
+  border-radius: 14px;
+  padding: 15px 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.task-title {
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.task-sub {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.badge-budget {
+  background: #1cc88a;
+  font-size: 14px;
+  padding: 10px;
+  border-radius: 10px;
+}
