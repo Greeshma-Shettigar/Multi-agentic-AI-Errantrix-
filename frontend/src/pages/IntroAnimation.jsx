@@ -15,7 +15,7 @@ function IntroAnimation() {
         ERRANTRI<span className="x">X</span>
       </div>
 
-      {/* 🛵 Scooter + Smoke wrapper */}
+      {/* 🛵 Scooter + Smoke */}
       <div className="scooter-wrapper">
         <img src={scooter} className="scooter" alt="" draggable="false" />
 

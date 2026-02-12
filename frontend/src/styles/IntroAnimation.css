@@ -1,13 +1,15 @@
-/* Container */
+/* 🌈 BLUE PALETTE BACKGROUND */
 .intro-container {
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(
-            180deg,
-                #f3d6c9 0%,
-                #e3bfb6 30%,
-                #b9839c 60%,
-                #4a235a 100%);
+
+    background: linear-gradient(180deg,
+            #8FC3FF 0%,
+            #A2D2FF 25%,
+            #BDE0FE 50%,
+            #D1E8FC 75%,
+            #E5F0FA 100%);
+
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -18,14 +20,12 @@
 
 /* 🌍 EARTH */
 .earth {
-    width: 260px;
-    /* bigger earth */
+    width: 280px;
     opacity: 0;
-    transform: scale(0.6);
+    transform: scale(0.5);
     animation: earthPop 1.6s ease-out forwards;
 }
 
-/* Earth pop animation */
 @keyframes earthPop {
     0% {
         opacity: 0;
@@ -43,51 +43,49 @@
     }
 }
 
-/* 📝 BRAND TEXT */
+/* 📝 ERRANTRIX TEXT */
 .brand {
-    margin-top: 20px;
+    margin-top: 22px;
     font-size: 64px;
     font-weight: 800;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
         "Segoe UI", sans-serif;
-    color: #fbe4d8;
-        
+
+    color: #1A2A4F;
+    /* darker blue for contrast */
+    letter-spacing: 0.12em;
+
     opacity: 0;
     animation: textFade 1s ease forwards;
     animation-delay: 1.8s;
-    letter-spacing: 0.12em;
 }
 
-.brand .x {
-    position: relative;
-}
-
-/* Brand appear */
 @keyframes textFade {
     to {
         opacity: 1;
     }
 }
 
-/* 🛵 SCOOTER */
-.scooter {
+/* 🛵 SCOOTER WRAPPER */
+.scooter-wrapper {
     position: absolute;
-    width: 140px;
-    /* slightly smaller */
-    bottom: 42%;
-    left: -180px;
-    /* fully off-screen initially */
-    opacity: 0;
-    animation: scooterMove 2.4s linear forwards;
+    bottom: 40%;
+    left: -220px;
+
+    animation: scooterMove 2.5s linear forwards;
     animation-delay: 3s;
-    /* AFTER earth + text */
 }
 
-/* Scooter movement */
+.scooter {
+    width: 130px;
+    display: block;
+}
+
+/* Linear left → right movement */
 @keyframes scooterMove {
     0% {
+        left: -220px;
         opacity: 0;
-        left: -180px;
     }
 
     10% {
@@ -95,50 +93,43 @@
     }
 
     100% {
+        left: calc(50% + 190px);
+        /* stops after X */
         opacity: 1;
-        left: calc(50% + 170px);
-        /* AFTER X of ERRANTRIX */
     }
 }
-/* 🛵 SCOOTER WRAPPER */
-.scooter-wrapper {
-    position: absolute;
-    bottom: 42%;
-    left: -180px;
-    opacity: 0;
 
-    animation: scooterMove 2.4s linear forwards;
-    animation-delay: 3s;
-}
+/* 💨 SMOKE */
 .smoke {
     position: absolute;
-    left: -18px;
-    bottom: 18px;
+    bottom: 16px;
+    left: -25px;
 }
 
 .smoke span {
     position: absolute;
     width: 10px;
     height: 10px;
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(26, 42, 79, 0.4);
+    /* blue toned smoke */
     border-radius: 50%;
-    animation: smokeFloat 1.2s infinite ease-out;
+    animation: smokeFloat 1.3s infinite ease-out;
 }
 
 .smoke span:nth-child(2) {
-    left: -10px;
+    left: -12px;
     animation-delay: 0.2s;
 }
 
 .smoke span:nth-child(3) {
-    left: -20px;
+    left: -24px;
     animation-delay: 0.4s;
 }
 
 @keyframes smokeFloat {
     0% {
         transform: translateY(0) scale(1);
-        opacity: 0.7;
+        opacity: 0.6;
     }
 
     100% {
