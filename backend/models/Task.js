@@ -4,8 +4,38 @@ const TaskSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     description: { type: String },
-    pickupLocation: { type: String, required: true },
-    dropLocation: { type: String, required: true },
+
+    // 🔥 GEO-FENCING SUPPORT (UPDATED)
+    pickupLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+        required: true,
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        required: true,
+      },
+    },
+
+    dropLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
+    },
+
+    radius: {
+      type: Number,
+      default: 5000, // 5km default geo-fence
+    },
+
     budget: { type: Number, required: true },
 
     postedBy: {
@@ -15,7 +45,6 @@ const TaskSchema = new mongoose.Schema(
     },
 
     // 🔹 TASK STATUS FLOW
-    // open → planned → negotiating → assigned → completed
     status: {
       type: String,
       enum: ["open", "planned", "negotiating", "assigned", "completed"],
@@ -33,7 +62,7 @@ const TaskSchema = new mongoose.Schema(
     bids: [
       {
         agentId: {
-          type: String, // keeping STRING so existing logic doesn't break
+          type: String,
           required: true,
         },
         price: {
@@ -41,7 +70,7 @@ const TaskSchema = new mongoose.Schema(
           required: true,
         },
         eta: {
-          type: Number, // minutes
+          type: Number,
           required: true,
         },
         createdAt: {
@@ -54,18 +83,20 @@ const TaskSchema = new mongoose.Schema(
     // 🔹 ASSIGNMENT
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // keeping User to avoid breaking current accept flow
+      ref: "User",
       default: null,
     },
 
-    // 🔹 OPTIONAL (future monitoring / routing agent)
     negotiationStatus: {
       type: String,
       enum: ["none", "in_progress", "completed"],
       default: "none",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
+// 🔥 Add 2dsphere index for geo queries
+TaskSchema.index({ pickupLocation: "2dsphere" });
 
 module.exports = mongoose.model("Task", TaskSchema);

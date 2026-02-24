@@ -2,10 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Landing.css";
 
-function Landing() {
-  const [showLoginOptions, setShowLoginOptions] = useState(false);
+import Healthcare from "../assets/Healthcare.svg";
+import Environment from "../assets/Environment.svg";
+import Food from "../assets/Food.svg";
+import Community from "../assets/Community.svg";
 
-  // ✅ Moved these inside the component
+function Landing() {
+  const [showLoginOptions, setShowLoginOptions] = useState(false); // ✅ Moved these inside the component
   const [showSignup, setShowSignup] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [loginRole, setLoginRole] = useState("");
@@ -73,15 +76,15 @@ function Landing() {
     e.preventDefault();
 
     try {
-     const res = await fetch("http://localhost:5000/api/auth/login", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({
-         email: loginData.email,
-         password: loginData.password,
-         loginAs: loginRole, // 🔥 VERY IMPORTANT
-       }),
-     });
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: loginData.email,
+          password: loginData.password,
+          loginAs: loginRole, // 🔥 VERY IMPORTANT
+        }),
+      });
 
       const data = await res.json();
 
@@ -89,13 +92,12 @@ function Landing() {
       if (!res.ok) {
         alert(data.message || "Login failed");
         return; // ⛔ STOP HERE
-      }
+       }
 
       // ✅ LOGIN SUCCESS
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.activeRole);
       localStorage.setItem("userId", data.user.id);
-
 
       if (data.user.activeRole === "user") {
         navigate("/user-dashboard");
@@ -109,28 +111,40 @@ function Landing() {
   };
 
   return (
-    <div className="app">
-      <div className="overlay" />
+    <div className="landing-container">
+      {/* HERO SECTION */}
+      <section className="hero-section">
+        {/* Top Center Brand */}
+        <h2 className="brand-title">ERRANTRIX</h2>
 
-      {/* NAVBAR */}
-      <header className="navbar">
-        <div className="logo">
-          <span className="logo-dot" />
-          <span>AI Multi-Agent</span>
-        </div>
+        {/* Main Heading */}
+        <h1 className="main-heading">
+          AI-Based Multi-Agent Framework
+          <br />
+          for Distributed Task Automation
+        </h1>
 
-        <div className="nav-buttons">
+        {/* Description */}
+        <p className="main-description">
+          A decentralized marketplace where intelligent agents and humans
+          collaborate to handle micro-level errands like grocery pickup, parcel
+          delivery, and medicine collection — efficiently and in real time.
+        </p>
+
+        {/* Buttons BELOW description */}
+        <div className="bottom-actions">
           <button
-            className="btn btn-outline"
+            className="cta-btn cta-outline"
             onClick={() => setShowSignup(true)}
           >
             Sign Up
           </button>
 
           <div className="login-wrapper">
-            <button className="btn btn-filled" onClick={handleLoginClick}>
+            <button className="cta-btn cta-filled" onClick={handleLoginClick}>
               Login
             </button>
+
             {showLoginOptions && (
               <div className="login-dropdown">
                 <button
@@ -144,7 +158,6 @@ function Landing() {
                 >
                   Login as User
                 </button>
-
                 <button
                   className="dropdown-btn"
                   onClick={() => {
@@ -160,59 +173,41 @@ function Landing() {
             )}
           </div>
         </div>
-      </header>
+      </section>
 
-      {/* HERO */}
-      <main className="hero">
-        <div className="hero-text">
-          <h1>
-            AI-Based Multi-Agent Framework
-            <span className="accent"> for Distributed Task Automation</span>
-          </h1>
-          <p>
-            A decentralized marketplace where intelligent agents and humans
-            collaborate to handle micro-level errands like grocery pickup,
-            parcel delivery, and medicine collection — efficiently and in real
-            time.
+      {/* SCROLL DOWN SERVICES SECTION */}
+      <section className="services-section">
+        <div className="services-popup">
+          <div className="card-row">
+            <div className="service-card">
+              <img src={Healthcare} alt="Healthcare" />
+              <h3>Healthcare</h3>
+            </div>
+
+            <div className="service-card">
+              <img src={Environment} alt="Environment" />
+              <h3>Environment</h3>
+            </div>
+
+            <div className="service-card">
+              <img src={Food} alt="Food" />
+              <h3>Food</h3>
+            </div>
+
+            <div className="service-card">
+              <img src={Community} alt="Community" />
+              <h3>Community</h3>
+            </div>
+          </div>
+
+          <p className="service-description">
+            We provide smart errand automation services including grocery
+            delivery, medicine pickup, eco-friendly parcel transport, local
+            community assistance, and intelligent task coordination powered by
+            AI agents.
           </p>
-
-          <div className="hero-actions">
-            <button className="btn btn-filled">Get Started</button>
-            <button className="btn btn-outline">Learn More</button>
-          </div>
         </div>
-
-        <div className="hero-card">
-          <h2>Quick Task Preview</h2>
-          <p className="hero-card-sub">
-            See how agents plan, negotiate, and route your task.
-          </p>
-
-          <div className="task-pill">
-            <span className="pill-label">Sample Task</span>
-            <span className="pill-text">
-              Pickup groceries from Local Mart and deliver to 4th Cross, JP
-              Nagar.
-            </span>
-          </div>
-
-          <div className="task-steps">
-            <div className="step">
-              <span className="step-dot" />
-              <span>Task created by user</span>
-            </div>
-            <div className="step">
-              <span className="step-dot" />
-              <span>Agents negotiate cost & time</span>
-            </div>
-            <div className="step">
-              <span className="step-dot" />
-              <span>Best route computed & assigned</span>
-            </div>
-          </div>
-        </div>
-      </main>
-      {/* ✅ SIGNUP MODAL */}
+      </section>
       {showSignup && (
         <div className="auth-modal-overlay">
           <div className="auth-modal">
