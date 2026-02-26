@@ -52,11 +52,15 @@ export default function UserDashboard() {
         },
         body: JSON.stringify({
           title: task.title,
-          description: task.description,
-
+          description:
+            task.description && task.description.trim().length > 0
+              ? task.description
+              : "",
+          pickupLocation: pickGeo,
+          dropLocation: dropGeo,
           // ✅ SEND RAW STRING
-          pickupLocation: task.pickupLocation,
-          dropLocation: task.dropLocation,
+          pickupAddress: task.pickupLocation,
+          dropAddress: task.dropLocation,
 
           budget: task.budget,
           postedBy: userId,
@@ -122,7 +126,7 @@ export default function UserDashboard() {
               <input
                 className="form-control mb-3"
                 name="pickupLocation"
-                placeholder="Pickup Location (e.g. Vijayanagar 3rd Stage Mysuru Karnataka India)"
+                placeholder="Pickup Location "
                 value={task.pickupLocation}
                 onChange={handleChange}
                 required

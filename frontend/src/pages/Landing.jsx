@@ -8,44 +8,31 @@ import Food from "../assets/Food.svg";
 import Community from "../assets/Community.svg";
 
 function Landing() {
-  const [showLoginOptions, setShowLoginOptions] = useState(false); // ✅ Moved these inside the component
+  const [showLoginOptions, setShowLoginOptions] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [loginRole, setLoginRole] = useState("");
+
   const [signupData, setSignupData] = useState({
     fullName: "",
     email: "",
     password: "",
     role: "user",
   });
+
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
-    role: "",
   });
 
   const navigate = useNavigate();
-  console.log("Signup:", showSignup, "Login:", showLogin);
 
   const handleLoginClick = () => {
     setShowLoginOptions((prev) => !prev);
   };
-  // Form State
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-  });
-  const [error, setError] = useState("");
 
-  // Handle Input Change
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  /* ================= REGISTER ================= */
 
-  // --- AUTHENTICATION FUNCTIONS ---
-
-  // 1. Handle Registration
   const handleRegister = async (e) => {
     e.preventDefault();
 
@@ -71,7 +58,8 @@ function Landing() {
     }
   };
 
-  // 2. Handle Login
+  /* ================= LOGIN ================= */
+
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -82,19 +70,17 @@ function Landing() {
         body: JSON.stringify({
           email: loginData.email,
           password: loginData.password,
-          loginAs: loginRole, // 🔥 VERY IMPORTANT
+          loginAs: loginRole,
         }),
       });
 
       const data = await res.json();
 
-      // ❌ LOGIN FAILED
       if (!res.ok) {
         alert(data.message || "Login failed");
-        return; // ⛔ STOP HERE
-       }
+        return;
+      }
 
-      // ✅ LOGIN SUCCESS
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.activeRole);
       localStorage.setItem("userId", data.user.id);
@@ -114,24 +100,20 @@ function Landing() {
     <div className="landing-container">
       {/* HERO SECTION */}
       <section className="hero-section">
-        {/* Top Center Brand */}
         <h2 className="brand-title">ERRANTRIX</h2>
 
-        {/* Main Heading */}
         <h1 className="main-heading">
           AI-Based Multi-Agent Framework
           <br />
           for Distributed Task Automation
         </h1>
 
-        {/* Description */}
         <p className="main-description">
           A decentralized marketplace where intelligent agents and humans
           collaborate to handle micro-level errands like grocery pickup, parcel
           delivery, and medicine collection — efficiently and in real time.
         </p>
 
-        {/* Buttons BELOW description */}
         <div className="bottom-actions">
           <button
             className="cta-btn cta-outline"
@@ -151,18 +133,19 @@ function Landing() {
                   className="dropdown-btn"
                   onClick={() => {
                     setLoginRole("user");
-                    setLoginData({ email: "", password: "", role: "user" });
+                    setLoginData({ email: "", password: "" });
                     setShowLogin(true);
                     setShowLoginOptions(false);
                   }}
                 >
                   Login as User
                 </button>
+
                 <button
                   className="dropdown-btn"
                   onClick={() => {
                     setLoginRole("delivery");
-                    setLoginData({ email: "", password: "", role: "delivery" });
+                    setLoginData({ email: "", password: "" });
                     setShowLogin(true);
                     setShowLoginOptions(false);
                   }}
@@ -175,7 +158,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* SCROLL DOWN SERVICES SECTION */}
+      {/* SERVICES SECTION */}
       <section className="services-section">
         <div className="services-popup">
           <div className="card-row">
@@ -208,107 +191,113 @@ function Landing() {
           </p>
         </div>
       </section>
+
+      {/* ================= SIGNUP MODAL ================= */}
       {showSignup && (
         <div className="auth-modal-overlay">
-          <div className="auth-modal">
-            <h2>Create Account</h2>
+          <div className="modern-modal">
+            <div className="modal-left">
+              <h2>Let's Get Started!</h2>
+            </div>
 
-            <form onSubmit={handleRegister}>
-              <input
-                type="text"
-                placeholder="Full Name"
-                required
-                value={signupData.fullName}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, fullName: e.target.value })
-                }
-              />
+            <div className="modal-right">
+              <h3>Create Account</h3>
 
-              <input
-                type="email"
-                placeholder="Email"
-                required
-                value={signupData.email}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, email: e.target.value })
-                }
-              />
+              <form onSubmit={handleRegister}>
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  required
+                  value={signupData.fullName}
+                  onChange={(e) =>
+                    setSignupData({ ...signupData, fullName: e.target.value })
+                  }
+                />
 
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                value={signupData.password}
-                onChange={(e) =>
-                  setSignupData({ ...signupData, password: e.target.value })
-                }
-              />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  required
+                  value={signupData.email}
+                  onChange={(e) =>
+                    setSignupData({ ...signupData, email: e.target.value })
+                  }
+                />
 
-              <button className="btn btn-filled" type="submit">
-                Register
-              </button>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  required
+                  value={signupData.password}
+                  onChange={(e) =>
+                    setSignupData({ ...signupData, password: e.target.value })
+                  }
+                />
 
-              <button
-                type="button"
-                className="close-btn"
-                onClick={() => setShowSignup(false)}
-              >
-                Close
-              </button>
-            </form>
+                <button type="submit" className="modal-btn">
+                  Register
+                </button>
+
+                <button
+                  type="button"
+                  className="close-btn"
+                  onClick={() => setShowSignup(false)}
+                >
+                  Close
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ✅ LOGIN MODAL */}
+      {/* ================= LOGIN MODAL ================= */}
       {showLogin && (
         <div className="auth-modal-overlay">
-          <div className="auth-modal">
-            <h2>
-              Login as {loginRole === "user" ? "User" : "Delivery Partner"}
-            </h2>
+          <div className="modern-modal">
+            <div className="modal-left">
+              <h2>Welcome Back!</h2>
+            </div>
 
-            <form onSubmit={handleLogin}>
-              <input
-                type="email"
-                placeholder="Email"
-                required
-                value={loginData.email}
-                onChange={(e) =>
-                  setLoginData({
-                    ...loginData,
-                    email: e.target.value,
-                    role: loginRole,
-                  })
-                }
-              />
+            <div className="modal-right">
+              <h3>
+                Login as {loginRole === "user" ? "User" : "Delivery Partner"}
+              </h3>
 
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                value={loginData.password}
-                onChange={(e) =>
-                  setLoginData({
-                    ...loginData,
-                    password: e.target.value,
-                    role: loginRole,
-                  })
-                }
-              />
+              <form onSubmit={handleLogin}>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  required
+                  value={loginData.email}
+                  onChange={(e) =>
+                    setLoginData({ ...loginData, email: e.target.value })
+                  }
+                />
 
-              <button className="btn btn-filled" type="submit">
-                Login
-              </button>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  required
+                  value={loginData.password}
+                  onChange={(e) =>
+                    setLoginData({ ...loginData, password: e.target.value })
+                  }
+                />
 
-              <button
-                type="button"
-                className="close-btn"
-                onClick={() => setShowLogin(false)}
-              >
-                Close
-              </button>
-            </form>
+                <button type="submit" className="modal-btn">
+                  Login
+                </button>
+
+                <button
+                  type="button"
+                  className="close-btn"
+                  onClick={() => setShowLogin(false)}
+                >
+                  Close
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}

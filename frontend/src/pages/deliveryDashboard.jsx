@@ -114,11 +114,9 @@ function DeliveryDashboard() {
 
                 {/* Since location is now GeoJSON, show formatted */}
                 <div className="task-route">
-                  Pickup: {task.pickupLocation?.coordinates?.[1]},
-                  {task.pickupLocation?.coordinates?.[0]}
+                  Pickup: {t.pickupAddress}
                   {" → "}
-                  Drop: {task.dropLocation?.coordinates?.[1]},
-                  {task.dropLocation?.coordinates?.[0]}
+                  Drop: {t.dropAddress}
                 </div>
 
                 <div className="task-desc">{task.description}</div>

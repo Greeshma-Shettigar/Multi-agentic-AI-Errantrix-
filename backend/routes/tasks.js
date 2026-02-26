@@ -55,6 +55,9 @@ router.post("/", async (req, res) => {
       postedBy,
       radius,
 
+      pickupAddress: pickupLocation, 
+      dropAddress: dropLocation,
+
       pickupLocation: {
         type: "Point",
         coordinates: [

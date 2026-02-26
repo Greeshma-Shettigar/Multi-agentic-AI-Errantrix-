@@ -17,10 +17,11 @@ body {
     min-height: 100vh;
     width: 100vw;
     background: linear-gradient(180deg,
-            #8FC3FF 0%,
-            #A2D2FF 30%,
-            #BDE0FE 60%,
-            #EAF6FF 100%);
+           #E5F0FA 0%,
+            #D1E8FC 25%,
+            #BDE0FE 50%,
+            #A2D2FF 75%,
+            #8FC3FF 100%);
 }
 
 /* HERO SECTION */
@@ -216,4 +217,96 @@ body {
     width: 380px;
     max-width: 90%;
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* MODAL OVERLAY */
+.auth-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 20, 60, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* MODERN SPLIT MODAL (smaller than reference) */
+.modern-modal {
+    width: 720px;
+    height: 420px;
+    display: flex;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* LEFT SIDE */
+.modal-left {
+    flex: 1;
+    background: linear-gradient(135deg,
+            #8FC3FF,
+            #5A8DEE,
+            #3B6FD8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    color: white;
+    text-align: center;
+}
+
+.modal-left h2 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+/* RIGHT SIDE */
+.modal-right {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.modal-right h3 {
+    margin-bottom: 20px;
+    color: #0B2C5F;
+    font-size: 22px;
+}
+
+.modal-right input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #d2d8e6;
+    font-size: 14px;
+}
+
+/* BUTTON */
+.modal-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #0B2C5F;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.modal-btn:hover {
+    background: #08306b;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #0B2C5F;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: underline;
 }

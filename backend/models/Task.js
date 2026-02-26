@@ -5,6 +5,17 @@ const TaskSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String },
 
+    // 🔥 HUMAN READABLE ADDRESSES
+    pickupAddress: {
+      type: String,
+      required: true,
+    },
+
+    dropAddress: {
+      type: String,
+      required: true,
+    },
+
     // 🔥 GEO-FENCING SUPPORT (UPDATED)
     pickupLocation: {
       type: {
@@ -33,7 +44,7 @@ const TaskSchema = new mongoose.Schema(
 
     radius: {
       type: Number,
-      default: 5000, // 5km default geo-fence
+      default: 7000, // 7km default geo-fence
     },
 
     budget: { type: Number, required: true },
