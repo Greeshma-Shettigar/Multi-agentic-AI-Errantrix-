@@ -29,7 +29,6 @@ app.locals.io = io;
 app.use("/api/tasks", taskRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/auth", authRoute); // <-- CRITICAL FIX: Auth route registered here
-app.use("/api/tasks", taskRoutes);
 
 setInterval(() => {
   monitoringAgent();
