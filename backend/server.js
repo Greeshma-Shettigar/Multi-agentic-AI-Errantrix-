@@ -4,6 +4,7 @@ const http = require("http");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
+const Task = require("./models/Task"); 
 
 
 // Routes
@@ -37,9 +38,16 @@ setInterval(() => {
 // Note: useUnifiedTopology and useNewUrlParser are deprecated/defaulted in newer Mongoose versions,
 // but they won't hurt if you keep them.
 const MONGO = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/marketplace";
+mongoose.set("autoIndex", true);
 mongoose
   .connect(MONGO)
-  .then(() => console.log("Mongo connected"))
+  .then(async () => {
+    console.log("Mongo connected");
+
+    // 🔥 FORCE INDEX CREATION
+    await Task.syncIndexes();
+    console.log("Indexes synced");
+  })
   .catch((err) => console.error(err));
 
 const PORT = process.env.PORT || 5000;
