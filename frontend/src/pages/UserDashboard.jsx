@@ -11,7 +11,6 @@ export default function UserDashboard() {
     pickupLocation: "",
     dropLocation: "",
     budget: "",
-    postedBy: userId,
   });
 
   const [tasks, setTasks] = useState([]);
@@ -37,53 +36,62 @@ export default function UserDashboard() {
     setTask({ ...task, [e.target.name]: e.target.value });
   };
 
-  // 🔹 Submit new task
- const submitTask = async (e) => {
-   e.preventDefault();
-   setLoading(true);
+  
 
-   const userId = localStorage.getItem("userId"); // save this at login
+  // 🔹 Submit new task (NO GEOCODING HERE)
+  const submitTask = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-   try {
-     const res = await fetch("http://localhost:5000/api/tasks", {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-         Authorization: `Bearer ${localStorage.getItem("token")}`,
-       },
-       body: JSON.stringify({
-         title: task.title,
-         description: task.description,
-         pickupLocation: task.pickupLocation,
-         dropLocation: task.dropLocation,
-         budget: task.budget,
-         postedBy: userId,
-       }),
-     });
+    try {
+      const res = await fetch("http://localhost:5000/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
 
-     const data = await res.json();
+          // ✅ SEND RAW STRING
+          pickupLocation: task.pickupLocation,
+          dropLocation: task.dropLocation,
 
-     if (!res.ok) {
-       alert("Task creation failed");
-       setLoading(false);
-       return;
-     }
+          budget: task.budget,
+          postedBy: userId,
+        }),
+      });
 
-     setTasks((prevTasks) => [data, ...prevTasks]); 
+      const data = await res.json();
 
-     
-     setTask({ title: "", description: "", pickupLocation: "", dropLocation: "", budget: "" });
-     alert("Task posted successfully");
-     
-   } catch (err) {
-     console.error(err);
-   }
- };
+      if (!res.ok) {
+        alert(data.message || "Task creation failed");
+        setLoading(false);
+        return;
+      }
 
+      setTasks((prev) => [data, ...prev]);
+
+      setTask({
+        title: "",
+        description: "",
+        pickupLocation: "",
+        dropLocation: "",
+        budget: "",
+      });
+
+      alert("Task posted successfully");
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    }
+
+    setLoading(false);
+  };
 
   return (
     <div className="dashboard-page">
-      {/* HEADER */}
       <Header />
 
       <div className="row">
@@ -99,6 +107,7 @@ export default function UserDashboard() {
                 placeholder="Task Title"
                 value={task.title}
                 onChange={handleChange}
+                required
               />
 
               <textarea
@@ -113,9 +122,10 @@ export default function UserDashboard() {
               <input
                 className="form-control mb-3"
                 name="pickupLocation"
-                placeholder="Pickup Location"
+                placeholder="Pickup Location (e.g. Vijayanagar 3rd Stage Mysuru Karnataka India)"
                 value={task.pickupLocation}
                 onChange={handleChange}
+                required
               />
 
               <input
@@ -124,6 +134,7 @@ export default function UserDashboard() {
                 placeholder="Drop Location"
                 value={task.dropLocation}
                 onChange={handleChange}
+                required
               />
 
               <input
@@ -133,6 +144,7 @@ export default function UserDashboard() {
                 placeholder="Budget (₹)"
                 value={task.budget}
                 onChange={handleChange}
+                required
               />
 
               <button className="btn-modern w-100" disabled={loading}>
@@ -154,13 +166,19 @@ export default function UserDashboard() {
                 <div key={t._id} className="task-item">
                   <div>
                     <div className="task-title">{t.title}</div>
+
                     <div className="task-route">
-                      {t.pickupLocation} → {t.dropLocation}
+                      Pickup: {t.pickupLocation?.coordinates?.[1]},{" "}
+                      {t.pickupLocation?.coordinates?.[0]}
+                      {" → "}
+                      Drop: {t.dropLocation?.coordinates?.[1]},{" "}
+                      {t.dropLocation?.coordinates?.[0]}
                     </div>
+
                     <div className="text-desc">
                       {t.description || "No description"}
                     </div>
-                    {/* ✅ ASSIGNED DELIVERY PARTNER */}
+
                     {t.status === "assigned" && t.assignedTo && (
                       <div className="assigned-box mt-3">
                         <h6>🚚 Assigned Delivery Partner</h6>
@@ -168,13 +186,8 @@ export default function UserDashboard() {
                           <b>Name:</b> {t.assignedTo.fullName}
                         </p>
                         <p>
-                          <b>User ID:</b> {t.assignedTo._id}
+                          <b>Email:</b> {t.assignedTo.email}
                         </p>
-                       
-                          <p>
-                            <b>Email:</b> {t.assignedTo.email}
-                          </p>
-                        
                       </div>
                     )}
                   </div>

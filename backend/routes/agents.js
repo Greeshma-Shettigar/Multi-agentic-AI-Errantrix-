@@ -16,6 +16,37 @@ router.post("/register", async (req, res) => {
   res.json(a);
 });
 
+// 🔥 Update helper live location
+router.post("/update-location", async (req, res) => {
+  try {
+    const { agentId, latitude, longitude } = req.body;
+
+    if (!agentId || !latitude || !longitude) {
+      return res.status(400).json({ message: "Missing data" });
+    }
+
+    const updatedAgent = await Agent.findOneAndUpdate(
+      { agentId },
+      {
+        location: {
+          type: "Point",
+          coordinates: [Number(longitude), Number(latitude)],
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedAgent) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    res.json(updatedAgent);
+  } catch (err) {
+    console.error("UPDATE LOCATION ERROR ❌", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.post("/bid", async (req, res) => {
   try {
     console.log("🔥 BID API HIT 🔥", req.body);
