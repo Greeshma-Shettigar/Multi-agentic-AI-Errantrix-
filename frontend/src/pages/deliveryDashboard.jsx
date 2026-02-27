@@ -3,20 +3,46 @@ import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
 
 function DeliveryDashboard() {
-  const [tasks, setTasks] = useState([]);
-
   const helperId = localStorage.getItem("userId");
 
-  // 🔹 Fetch Open Tasks
+  const [openTasks, setOpenTasks] = useState([]);
+  const [assignedTasks, setAssignedTasks] = useState([]);
+  const [notification, setNotification] = useState(null);
+  const [activeTab, setActiveTab] = useState("open"); // "open" or "assigned"
+
+  // 🔹 Fetch Tasks
   const fetchTasks = async () => {
-    const helperId = localStorage.getItem("userId");
-    const res = await fetch(`http://localhost:5000/api/tasks/open?helperId=${helperId}`);
-    const data = await res.json();
-    setTasks(data);
+    try {
+      // 1️⃣ Open Tasks
+      const openRes = await fetch(
+        `http://127.0.0.1:5000/api/tasks/open?helperId=${helperId}`,
+      );
+      const openData = await openRes.json();
+      setOpenTasks(openData);
+
+      // 2️⃣ Assigned Tasks
+      const assignedRes = await fetch(
+        `http://127.0.0.1:5000/api/tasks/assigned/${helperId}`,
+      );
+      const assignedData = await assignedRes.json();
+      setAssignedTasks(assignedData);
+
+      // 🔔 Show notification if assigned
+      if (assignedData.length > 0) {
+        setNotification(assignedData[0]);
+      } else {
+        setNotification(null);
+      }
+
+      console.log("OPEN TASKS 👉", openData);
+      console.log("ASSIGNED TASKS 👉", assignedData);
+    } catch (err) {
+      console.error("Failed to fetch tasks:", err);
+    }
   };
 
   useEffect(() => {
-    fetchTasks();
+    if (helperId) fetchTasks();
   }, []);
 
   // 🔹 Register Helper Agent
@@ -33,7 +59,7 @@ function DeliveryDashboard() {
     });
   }, [helperId]);
 
-  // 🔥 NEW: Live GPS Tracking for Geo-Fencing
+  // 🔥 Live GPS Tracking
   useEffect(() => {
     if (!helperId) return;
 
@@ -47,11 +73,9 @@ function DeliveryDashboard() {
         try {
           await fetch("http://localhost:5000/api/agents/update-location", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              agentId: localStorage.getItem("userId"),
+              agentId: helperId,
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             }),
@@ -83,9 +107,7 @@ function DeliveryDashboard() {
     try {
       await fetch("http://localhost:5000/api/agents/bid", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agentId: helperId,
           taskId,
@@ -103,37 +125,83 @@ function DeliveryDashboard() {
 
   return (
     <div className="dashboard-page">
-      <Header />
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="container">
         <div className="dashboard-card">
-          {tasks.map((task) => (
-            <div key={task._id} className="task-item">
-              <div>
-                <div className="task-title">{task.title}</div>
+          {/* 🔔 ASSIGNMENT NOTIFICATION */}
+          {activeTab === "assigned" && notification && (
+            <div className="assignment-notification">
+              <h4>🎉 You’ve been assigned a new delivery! 🚚</h4>
 
-                {/* Since location is now GeoJSON, show formatted */}
-                <div className="task-route">
-                  Pickup: {t.pickupAddress}
-                  {" → "}
-                  Drop: {t.dropAddress}
-                </div>
+              <hr />
 
-                <div className="task-desc">{task.description}</div>
+              <p>
+                <strong>📦 Task:</strong> {notification.title}
+              </p>
+              <p>
+                <strong>📍 Pickup:</strong> {notification.pickupAddress}
+              </p>
+              <p>
+                <strong>🏁 Drop:</strong> {notification.dropAddress}
+              </p>
+              <p>
+                <strong>💰 Budget:</strong> ₹{notification.budget}
+              </p>
 
-                {task.status !== "assigned" && (
-                  <button
-                    className="btn btn-primary btn-sm mt-2"
-                    onClick={() => placeBid(task._id)}
-                  >
-                    Place Bid
-                  </button>
-                )}
+              {notification.description && (
+                <p>
+                  <strong>📝 Description:</strong> {notification.description}
+                </p>
+              )}
+
+              <hr />
+
+              <p>
+                <strong>👤 Customer Name:</strong>{" "}
+                {notification.userName || "N/A"}
+              </p>
+              <p>
+                <strong>📧 Customer Email:</strong>{" "}
+                {notification.userEmail || "N/A"}
+              </p>
+
+              <div className="complete-btn-container">
+                <button className="complete-btn">✅ Complete Delivery</button>
               </div>
-
-              <div className="budget-badge">₹{task.budget}</div>
             </div>
-          ))}
+          )}
+
+          {/* 🟢 OPEN TASKS */}
+          {activeTab === "open" &&
+            (openTasks.length === 0 ? (
+              <p className="text-muted">No available tasks</p>
+            ) : (
+              openTasks.map((task) => (
+                <div key={task._id} className="task-item">
+                  <div>
+                    <div className="task-title">{task.title}</div>
+
+                    <div className="task-route">
+                      📍 {task.pickupAddress} → 🏁 {task.dropAddress}
+                    </div>
+
+                    <div className="task-desc">
+                      {task.description || "No description"}
+                    </div>
+
+                    <button
+                      className="btn btn-primary btn-sm mt-2"
+                      onClick={() => placeBid(task._id)}
+                    >
+                      Place Bid
+                    </button>
+                  </div>
+
+                  <div className="budget-badge">₹{task.budget}</div>
+                </div>
+              ))
+            ))}
         </div>
       </div>
     </div>

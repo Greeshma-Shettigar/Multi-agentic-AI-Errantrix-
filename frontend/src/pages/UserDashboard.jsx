@@ -29,14 +29,13 @@ export default function UserDashboard() {
 
   useEffect(() => {
     if (userId) fetchTasks();
+    
   }, [userId]);
 
   // 🔹 Handle input change
   const handleChange = (e) => {
     setTask({ ...task, [e.target.name]: e.target.value });
   };
-
-  
 
   // 🔹 Submit new task (NO GEOCODING HERE)
   const submitTask = async (e) => {
@@ -56,8 +55,8 @@ export default function UserDashboard() {
             task.description && task.description.trim().length > 0
               ? task.description
               : "",
-          pickupLocation: pickGeo,
-          dropLocation: dropGeo,
+          pickupLocation: task.pickupLocation,
+          dropLocation: task.dropLocation,
           // ✅ SEND RAW STRING
           pickupAddress: task.pickupLocation,
           dropAddress: task.dropLocation,
@@ -172,11 +171,8 @@ export default function UserDashboard() {
                     <div className="task-title">{t.title}</div>
 
                     <div className="task-route">
-                      Pickup: {t.pickupLocation?.coordinates?.[1]},{" "}
-                      {t.pickupLocation?.coordinates?.[0]}
-                      {" → "}
-                      Drop: {t.dropLocation?.coordinates?.[1]},{" "}
-                      {t.dropLocation?.coordinates?.[0]}
+                      <p>📍 Pickup: {t.pickupAddress}</p>
+                      <p>🏁 Drop: {t.dropAddress}</p>
                     </div>
 
                     <div className="text-desc">

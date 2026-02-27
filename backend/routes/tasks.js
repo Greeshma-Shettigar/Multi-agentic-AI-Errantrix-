@@ -41,7 +41,7 @@ router.post("/", async (req, res) => {
   try {
     console.log("REQ BODY 👉", req.body);
 
-    const { title, pickupLocation, dropLocation, budget, postedBy, radius } =
+    const { title,description, pickupLocation, dropLocation, budget, postedBy, radius } =
       req.body;
 
     // 🔥 1. Convert address → coordinates
@@ -51,6 +51,7 @@ router.post("/", async (req, res) => {
     // 🔥 2. Build GeoJSON structure
     const taskData = {
       title,
+      description,
       budget,
       postedBy,
       radius,
@@ -146,6 +147,20 @@ router.get("/user/:userId", async (req, res) => {
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// 🔔 Get tasks assigned to specific helper
+router.get("/assigned/:helperId", async (req, res) => {
+  try {
+    const tasks = await Task.find({
+      assignedTo: req.params.helperId,
+      status: "assigned",
+    });
+
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 

@@ -73,19 +73,68 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-    .app-header {
-        flex-direction: column;
-        height: auto;
-        gap: 12px;
-        align-items: flex-start;
-    }
+.app-header {
+    background: #0d1b2a;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-    .header-right {
-        align-self: flex-end;
-    }
+.header-left h2 {
+    margin: 0;
+}
 
-    .dashboard-header h2 {
-        font-size: 18px;
-    }
+.header-left p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Tabs beside logout */
+.header-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.header-tab {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: white;
+    color: #0d1b2a;
+    font-weight: 500;
+    transition: 0.2s ease;
+}
+
+.header-tab.active {
+    background: #ffc107;
+    color: black;
+}
+
+.header-tab:hover {
+    transform: scale(1.05);
+}
+
+.profile-image {
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+}
+
+.logout-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    background: #dc3545;
+    color: white;
+    cursor: pointer;
 }
