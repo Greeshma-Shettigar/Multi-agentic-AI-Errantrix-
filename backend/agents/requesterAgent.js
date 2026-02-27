@@ -1,4 +1,6 @@
-const requesterAgent = (taskData) => {
+const axios = require("axios");
+
+const requesterAgent = async (taskData) => {
   console.log("[Requester Agent] Planning task");
 
   if (
@@ -8,6 +10,28 @@ const requesterAgent = (taskData) => {
     !taskData.postedBy
   ) {
     throw new Error("Invalid task data");
+  }
+
+  // 🔐 ---------------------------
+  // 🚨 AI MODERATION CHECK (NEW)
+  // -----------------------------
+
+  try {
+    const moderationResponse = await axios.post(
+      "http://127.0.0.1:8001/moderate",
+      {
+        text: taskData.title, // you can combine title + description if exists
+      },
+    );
+
+    if (!moderationResponse.data.safe) {
+      throw new Error("Task rejected: Unsafe or illegal content detected.");
+    }
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message ||
+        "Moderation service unavailable or task unsafe.",
+    );
   }
 
   // 🔥 Validate Pickup GeoJSON
@@ -30,14 +54,14 @@ const requesterAgent = (taskData) => {
     throw new Error("Invalid drop location format");
   }
 
-  // ✅ Convert coordinates to numbers (VERY IMPORTANT FIX)
+  // ✅ Convert coordinates to numbers
   taskData.pickupLocation.coordinates =
     taskData.pickupLocation.coordinates.map(Number);
 
   taskData.dropLocation.coordinates =
     taskData.dropLocation.coordinates.map(Number);
 
-  // ✅ Extra safety check (avoid NaN values)
+  // ✅ Extra safety check
   if (
     taskData.pickupLocation.coordinates.some(isNaN) ||
     taskData.dropLocation.coordinates.some(isNaN)

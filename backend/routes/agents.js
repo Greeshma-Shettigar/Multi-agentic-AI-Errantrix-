@@ -5,7 +5,10 @@ const Task = require("../models/Task");
 const helperAgent = require("../agents/helperAgent");
 const runNegotiationAgent = require("../agents/negotiationRunner");
 const mongoose = require("mongoose");
-
+ 
+const generateOTP = () => {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+};
 
 router.post("/register", async (req, res) => {
   const a = await Agent.findOneAndUpdate(
@@ -80,6 +83,7 @@ router.post("/bid", async (req, res) => {
     });
 
     await task.save();
+    req.app.locals.io.emit("task_assigned", task);
 
     // 🔔 Realtime update (UI)
     req.app.locals.io.emit("new_bid", {
@@ -96,12 +100,19 @@ router.post("/bid", async (req, res) => {
       const winner = await runNegotiationAgent(task.bids);
 
       if (winner && winner.agentId) {
-        task.assignedTo = new mongoose.Types.ObjectId(winner.agentId);;
+        task.assignedTo = new mongoose.Types.ObjectId(winner.agentId);
         task.status = "assigned";
         task.negotiationStatus = "completed";
 
+        // 🔐 Generate OTP here
+        task.otpCode = generateOTP();
+        task.deliveryConfirmed = false;
+        task.userConfirmed = false;
+
         await task.save();
-         console.log("🏆 Task assigned to:", winner.agentId);
+        req.app.locals.io.emit("task_assigned", task);
+        console.log("🏆 Task assigned to:", winner.agentId);
+        console.log("🔐 Generated OTP:", task.otpCode);
         return res.json({
           message: "Negotiation completed, task assigned",
           winner,

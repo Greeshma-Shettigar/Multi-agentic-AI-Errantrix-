@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
+import { io } from "socket.io-client";
 
 export default function UserDashboard() {
   const userId = localStorage.getItem("userId");
@@ -31,6 +32,7 @@ export default function UserDashboard() {
     if (userId) fetchTasks();
     
   }, [userId]);
+
 
   // 🔹 Handle input change
   const handleChange = (e) => {
@@ -92,6 +94,44 @@ export default function UserDashboard() {
 
     setLoading(false);
   };
+  
+  // 🔹 Complete Task
+  const completeTask = async (taskId) => {
+    const res = await fetch(
+      `http://localhost:5000/api/tasks/complete/${taskId}`,
+      { method: "POST" },
+    );
+
+    if (!res.ok) {
+      alert("Error completing task");
+      return;
+    }
+
+    // Remove from UI immediately
+    setTasks((prev) => prev.filter((task) => task._id !== taskId));
+
+    alert("🎉 Task completed successfully!");
+  };
+
+  useEffect(() => {
+    const socket = io("http://localhost:5000");
+
+    socket.on("task_assigned", (updatedTask) => {
+      if (updatedTask.postedBy === userId) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task._id === updatedTask._id ? updatedTask : task,
+          ),
+        );
+      }
+    });
+
+    socket.on("task_completed", (completedTask) => {
+      setTasks((prev) => prev.filter((task) => task._id !== completedTask._id));
+    });
+
+    return () => socket.disconnect();
+  }, []);
 
   return (
     <div className="dashboard-page">
@@ -182,12 +222,37 @@ export default function UserDashboard() {
                     {t.status === "assigned" && t.assignedTo && (
                       <div className="assigned-box mt-3">
                         <h6>🚚 Assigned Delivery Partner</h6>
+
                         <p>
                           <b>Name:</b> {t.assignedTo.fullName}
                         </p>
+
                         <p>
                           <b>Email:</b> {t.assignedTo.email}
                         </p>
+
+                        <hr />
+
+                        {/* 🔐 OTP SECTION */}
+                        <div className="otp-section">
+                          <p>
+                            <b>🔐 Delivery Verification Code:</b> {t.otpCode}
+                          </p>
+
+                          <button
+                            className="complete-user-btn"
+                            disabled={!t.deliveryConfirmed}
+                            onClick={() => completeTask(t._id)}
+                          >
+                            ✅ Complete
+                          </button>
+
+                          {!t.deliveryConfirmed && (
+                            <p className="otp-note">
+                              ⏳ Waiting for delivery partner to verify code...
+                            </p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

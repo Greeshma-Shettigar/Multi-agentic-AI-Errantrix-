@@ -77,12 +77,13 @@ router.post("/", async (req, res) => {
     };
 
     // 🔥 3. Send to Requester Agent
-    const plannedTaskData = requesterAgent(taskData);
+    const plannedTaskData = await requesterAgent(taskData);
 
     console.log("AFTER AGENT 👉", plannedTaskData);
 
     const task = new Task(plannedTaskData);
     const savedTask = await task.save();
+    req.app.locals.io.emit("task_created", savedTask);
 
     res.status(201).json(savedTask);
   } catch (err) {
@@ -140,7 +141,10 @@ router.get("/open", async (req, res) => {
 // GET TASKS BY USER
 router.get("/user/:userId", async (req, res) => {
   try {
-    const tasks = await Task.find({ postedBy: req.params.userId })
+    const tasks = await Task.find({
+      postedBy: req.params.userId,
+      status: { $ne: "completed" }, // 🔥 exclude completed
+    })
       .populate("assignedTo", "fullName email")
       .sort({ createdAt: -1 });
 
@@ -153,12 +157,62 @@ router.get("/user/:userId", async (req, res) => {
 // 🔔 Get tasks assigned to specific helper
 router.get("/assigned/:helperId", async (req, res) => {
   try {
-    const tasks = await Task.find({
-      assignedTo: req.params.helperId,
-      status: "assigned",
-    });
+    const { helperId } = req.params;
 
-    res.json(tasks);
+    const tasks = await Task.find({
+      assignedTo: helperId,
+      status: "assigned",
+    }).populate("postedBy", "fullName email"); // 🔥 populate user
+
+    const formattedTasks = tasks.map((task) => ({
+      ...task._doc, // ✅ keep ALL existing fields
+
+      // 🔥 add readable customer info
+      userName: task.postedBy?.fullName,
+      userEmail: task.postedBy?.email,
+    }));
+
+    res.json(formattedTasks);
+  } catch (err) {
+    console.error("Assigned fetch error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/verify-otp/:taskId", async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { code } = req.body;
+
+    const task = await Task.findById(taskId);
+
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    if (task.otpCode !== code) {
+      return res.status(400).json({ message: "Invalid code" });
+    }
+
+    task.deliveryConfirmed = true;
+    await task.save();
+
+    res.json({ message: "OTP verified successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+router.post("/complete/:taskId", async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.taskId);
+
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    task.status = "completed";
+    task.userConfirmed = true;
+
+    await task.save();
+    req.app.locals.io.emit("task_completed", task);
+
+    res.json({ message: "Task completed successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

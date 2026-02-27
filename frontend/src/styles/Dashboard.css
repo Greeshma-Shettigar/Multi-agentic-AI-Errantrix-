@@ -199,3 +199,31 @@
 .complete-btn:hover {
     background: #218838;
 }
+
+.otp-section {
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff3cd;
+    border-radius: 6px;
+}
+
+.complete-user-btn {
+    margin-top: 8px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    background: #28a745;
+    color: white;
+    cursor: pointer;
+}
+
+.complete-user-btn:disabled {
+    background: gray;
+    cursor: not-allowed;
+}
+
+.otp-note {
+    font-size: 13px;
+    color: #856404;
+    margin-top: 5px;
+}

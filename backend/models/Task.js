@@ -103,6 +103,19 @@ const TaskSchema = new mongoose.Schema(
       enum: ["none", "in_progress", "completed"],
       default: "none",
     },
+    otpCode: {
+      type: String,
+    },
+
+    deliveryConfirmed: {
+      type: Boolean,
+      default: false,
+    },
+
+    userConfirmed: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );

@@ -1,10 +1,13 @@
 import React from "react";
 import "../styles/IntroAnimation.css";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 import earth from "../assets/earth.png";
 import scooter from "../assets/scooter.png";
 
 function IntroAnimation() {
+  
   return (
     <div className="intro-container">
       {/* 🌍 Earth */}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
+import { io } from "socket.io-client";
 
 function DeliveryDashboard() {
   const helperId = localStorage.getItem("userId");
@@ -43,7 +44,7 @@ function DeliveryDashboard() {
 
   useEffect(() => {
     if (helperId) fetchTasks();
-  }, []);
+  }, [helperId]);
 
   // 🔹 Register Helper Agent
   useEffect(() => {
@@ -97,6 +98,33 @@ function DeliveryDashboard() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [helperId]);
 
+  // ✅ Socket Connection (SEPARATE HOOK)
+  useEffect(() => {
+    const socket = io("http://localhost:5000");
+
+    socket.on("task_created", (newTask) => {
+      setOpenTasks((prev) => [newTask, ...prev]);
+    });
+
+    socket.on("task_assigned", (updatedTask) => {
+      setOpenTasks((prev) =>
+        prev.filter((task) => task._id !== updatedTask._id),
+      );
+
+      if (updatedTask.assignedTo === helperId) {
+        setAssignedTasks((prev) => [updatedTask, ...prev]);
+        setNotification(updatedTask);
+      }
+    });
+
+    socket.on("task_completed", (completedTask) => {
+      setAssignedTasks((prev) =>
+        prev.filter((task) => task._id !== completedTask._id),
+      );
+    });
+
+    return () => socket.disconnect();
+  }, [helperId]);
   // 🔹 Place Bid
   const placeBid = async (taskId) => {
     const price = prompt("Enter your bid price");
@@ -123,6 +151,30 @@ function DeliveryDashboard() {
     }
   };
 
+  // 🔹 Verify OTP & Complete Delivery
+  const verifyOTP = async (taskId) => {
+    const code = prompt("Enter delivery confirmation code");
+
+    if (!code) return;
+
+    const res = await fetch(
+      `http://localhost:5000/api/tasks/verify-otp/${taskId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message);
+    } else {
+      alert("Delivery verified! Waiting for user confirmation.");
+      fetchTasks();
+    }
+  };
   return (
     <div className="dashboard-page">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -167,7 +219,12 @@ function DeliveryDashboard() {
               </p>
 
               <div className="complete-btn-container">
-                <button className="complete-btn">✅ Complete Delivery</button>
+                <button
+                  className="complete-btn"
+                  onClick={() => verifyOTP(notification._id)}
+                >
+                  ✅ Complete Delivery
+                </button>
               </div>
             </div>
           )}
