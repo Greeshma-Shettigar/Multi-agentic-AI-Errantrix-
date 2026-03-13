@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
 import { io } from "socket.io-client";
+import "../styles/Board.css"
 
 export default function UserDashboard() {
   const userId = localStorage.getItem("userId");
@@ -16,6 +17,12 @@ export default function UserDashboard() {
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showComplaint, setShowComplaint] = useState(false);
+  const [taskName, setTaskName] = useState("");
+  const [description, setDescription] = useState("");
+  const [partnerName, setPartnerName] = useState("");
+  const [partnerEmail, setPartnerEmail] = useState("");
+  const [errorPopup, setErrorPopup] = useState("");
 
   // 🔹 Fetch user's tasks
   const fetchTasks = async () => {
@@ -133,9 +140,43 @@ export default function UserDashboard() {
     return () => socket.disconnect();
   }, []);
 
+  const submitComplaint = async () => {
+    console.log("Complaint button clicked");
+    try {
+      const res = await fetch("http://localhost:5000/api/user/complaint", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskName,
+          description,
+          partnerEmail,
+          partnerName,
+          userId,
+        }),
+      });
+
+      const data = await res.json();
+        console.log("Server response:", data);
+
+      if (!res.ok) {
+        setErrorPopup(data.message);
+        return;
+      }
+
+      alert("Complaint submitted");
+      fetchTasks();
+      setShowComplaint(false);
+    } catch (err) {
+       console.error("Complaint error:", err);
+      setErrorPopup("Failed to submit complaint");
+    }
+  };
+
   return (
     <div className="dashboard-page">
-      <Header />
+      <Header onHelpClick={() => setShowComplaint(true)} />
 
       <div className="row">
         {/* CREATE TASK */}
@@ -209,6 +250,9 @@ export default function UserDashboard() {
                 <div key={t._id} className="task-item">
                   <div>
                     <div className="task-title">{t.title}</div>
+                    {t.complaintRaised && (
+                      <div className="complaint-tag">⚠ Complaint Raised</div>
+                    )}
 
                     <div className="task-route">
                       <p>📍 Pickup: {t.pickupAddress}</p>
@@ -279,6 +323,67 @@ export default function UserDashboard() {
           </div>
         </div>
       </div>
+
+      {showComplaint && (
+        <div className="complaint-overlay">
+          <div className="complaint-card">
+            <h3>Raise Complaint</h3>
+
+            <input
+              className="form-control mb-2"
+              placeholder="Task Name"
+              value={taskName}
+              onChange={(e) => setTaskName(e.target.value)}
+            />
+            <textarea
+              className="form-control mb-2"
+              placeholder="Describe the issue"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <input
+              className="form-control mb-2"
+              placeholder="Delivery Partner Name"
+              value={partnerName}
+              onChange={(e) => setPartnerName(e.target.value)}
+            />
+            <input
+              className="form-control mb-3"
+              placeholder="Delivery Partner Email"
+              value={partnerEmail}
+              onChange={(e) => setPartnerEmail(e.target.value)}
+            />
+
+            <button className="btn btn-primary me-2" onClick={submitComplaint}>
+              Submit Complaint
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowComplaint(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {errorPopup && (
+        <div className="popup-overlay">
+          <div className="popup-card">
+            <h4>⚠ Complaint Error</h4>
+
+            <p>{errorPopup}</p>
+
+            <button
+              className="popup-close-btn"
+              onClick={() => setErrorPopup("")}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

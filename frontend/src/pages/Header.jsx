@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/Header.css";
 
-const Header = ({ activeTab, setActiveTab }) => {
+const Header = ({ activeTab, setActiveTab, onHelpClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,13 +29,18 @@ const Header = ({ activeTab, setActiveTab }) => {
 
       {/* RIGHT SIDE */}
       <div className="header-right">
+        {location.pathname !== "/delivery-dashboard" && (
+          <button className="help-btn" onClick={onHelpClick}>
+            ❓ Help
+          </button>
+        )}
         {location.pathname === "/delivery-dashboard" && (
           <div className="header-tabs">
             <button
               className={`header-tab ${activeTab === "open" ? "active" : ""}`}
               onClick={() => setActiveTab("open")}
             >
-              🟢 Tasks 
+              🟢 Tasks
             </button>
 
             <button
@@ -44,7 +49,7 @@ const Header = ({ activeTab, setActiveTab }) => {
               }`}
               onClick={() => setActiveTab("assigned")}
             >
-              🚚 Assigned 
+              🚚 Assigned
             </button>
           </div>
         )}

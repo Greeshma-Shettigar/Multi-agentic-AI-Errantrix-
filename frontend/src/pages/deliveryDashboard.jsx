@@ -10,6 +10,7 @@ function DeliveryDashboard() {
   const [assignedTasks, setAssignedTasks] = useState([]);
   const [notification, setNotification] = useState(null);
   const [activeTab, setActiveTab] = useState("open"); // "open" or "assigned"
+  const [errorPopup, setErrorPopup] = useState("");
 
   // 🔹 Fetch Tasks
   const fetchTasks = async () => {
@@ -126,30 +127,59 @@ function DeliveryDashboard() {
     return () => socket.disconnect();
   }, [helperId]);
   // 🔹 Place Bid
-  const placeBid = async (taskId) => {
-    const price = prompt("Enter your bid price");
-    const eta = prompt("Enter ETA in minutes");
+ const placeBid = async (taskId) => {
+   try {
+     // 🔥 First check with backend (helperAgent will run here)
+     const check = await fetch("http://localhost:5000/api/agents/bid", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({
+         agentId: helperId,
+         taskId,
+         price: 0, // temporary check values
+         eta: 0,
+       }),
+     });
 
-    if (!price || !eta) return;
+     const data = await check.json();
 
-    try {
-      await fetch("http://localhost:5000/api/agents/bid", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agentId: helperId,
-          taskId,
-          price,
-          eta,
-        }),
-      });
+     // ❌ If helperAgent blocks bidding
+     if (!check.ok) {
+      setErrorPopup(data.message);
+       return;
+     }
 
-      alert("Bid placed successfully");
-      fetchTasks();
-    } catch (err) {
-      alert("Failed to place bid");
-    }
-  };
+     // ✅ Only ask price if backend allows
+     const price = prompt("Enter your bid price");
+     const eta = prompt("Enter ETA in minutes");
+
+     if (!price || !eta) return;
+
+     const res = await fetch("http://localhost:5000/api/agents/bid", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({
+         agentId: helperId,
+         taskId,
+         price,
+         eta,
+       }),
+     });
+
+     const result = await res.json();
+
+     if (!res.ok) {
+       alert(result.message);
+       return;
+     }
+
+     alert("Bid placed successfully");
+     fetchTasks();
+   } catch (err) {
+     console.error(err);
+     alert("Failed to place bid");
+   }
+ };
 
   // 🔹 Verify OTP & Complete Delivery
   const verifyOTP = async (taskId) => {
@@ -259,6 +289,23 @@ function DeliveryDashboard() {
                 </div>
               ))
             ))}
+
+          {errorPopup && (
+            <div className="popup-overlay">
+              <div className="popup-card">
+                <h3 className="popup-title">⚠️ Action Not Allowed</h3>
+
+                <p className="popup-message">{errorPopup}</p>
+
+                <button
+                  className="popup-close-btn"
+                  onClick={() => setErrorPopup("")}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

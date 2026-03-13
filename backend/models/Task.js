@@ -116,6 +116,15 @@ const TaskSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    complaintRaised: {
+      type: Boolean,
+      default: false,
+    },
+
+    complaintDescription: {
+      type: String,
+    },
   },
   { timestamps: true },
 );

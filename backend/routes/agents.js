@@ -69,6 +69,14 @@ router.post("/bid", async (req, res) => {
       });
     }
 
+    // 🔥 NEW: Helper Agent availability + feasibility check
+    const helperDecision = await helperAgent(task, { agentId });
+    console.log("Calling Helper Agent...");
+    if (!helperDecision.allowed) {
+      return res.status(400).json({
+        message: helperDecision.reason,
+      });
+    }
     // 🔁 First bid → move to negotiating
     if (task.status === "planned") {
       task.status = "negotiating";
@@ -130,6 +138,24 @@ router.post("/bid", async (req, res) => {
     console.error("BID ERROR ❌", err);
     res.status(500).json({ message: err.message });
   }
+});
+
+router.post("/bid-check", async (req, res) => {
+  const { agentId, taskId } = req.body;
+
+  const activeTask = await Task.findOne({
+    assignedTo: new mongoose.Types.ObjectId(agentId),
+    status: "assigned",
+  });
+
+  if (activeTask) {
+    return res.json({
+      allowed: false,
+      message: "You already have a task assigned.",
+    });
+  }
+
+  res.json({ allowed: true });
 });
 
 

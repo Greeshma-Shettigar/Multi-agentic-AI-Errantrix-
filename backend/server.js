@@ -4,13 +4,15 @@ const http = require("http");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const { Server } = require("socket.io");
-const Task = require("./models/Task"); 
+const Task = require("./models/Task");
+
 
 
 // Routes
 const taskRoutes = require("./routes/tasks");
 const agentRoutes = require("./routes/agents");
 const authRoute = require("./routes/auth"); // Auth route imported
+const complaintRoutes = require("./routes/complaint"); 
 const monitoringAgent = require("./agents/monitoringAgent");
 dotenv.config();
 const app = express();
@@ -29,6 +31,7 @@ app.locals.io = io;
 app.use("/api/tasks", taskRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/auth", authRoute); // <-- CRITICAL FIX: Auth route registered here
+app.use("/api/user", complaintRoutes);
 
 setInterval(() => {
   monitoringAgent();
