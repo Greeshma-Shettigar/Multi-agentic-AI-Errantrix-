@@ -174,6 +174,22 @@ export default function UserDashboard() {
     }
   };
 
+  const autoFillPartner = () => {
+    const selectedTask = tasks.find(
+      (t) => t.title.toLowerCase() === taskName.toLowerCase(),
+    );
+
+    if (!selectedTask) {
+      setPartnerName("");
+      setPartnerEmail("");
+      return;
+    }
+
+    if (selectedTask.assignedTo) {
+      setPartnerName(selectedTask.assignedTo.fullName);
+      setPartnerEmail(selectedTask.assignedTo.email);
+    }
+  };
   return (
     <div className="dashboard-page">
       <Header onHelpClick={() => setShowComplaint(true)} />
@@ -327,43 +343,49 @@ export default function UserDashboard() {
       {showComplaint && (
         <div className="complaint-overlay">
           <div className="complaint-card">
-            <h3>Raise Complaint</h3>
+            <h2 className="complaint-title">🆘 Need Help?</h2>
+            <p className="complaint-subtitle">
+              Having trouble with a delivery? Tell us what happened!
+            </p>
 
+            <label className="complaint-label">📦 Task Name</label>
             <input
-              className="form-control mb-2"
-              placeholder="Task Name"
+              className="complaint-input"
+              placeholder="Example: Grocery Pickup"
               value={taskName}
               onChange={(e) => setTaskName(e.target.value)}
+              onBlur={autoFillPartner}
             />
+            <p className="complaint-tip">
+              💡 Tip: Enter the exact task title to auto-fill delivery partner
+              details.
+            </p>
+            <label className="complaint-label">📝 What went wrong?</label>
             <textarea
-              className="form-control mb-2"
-              placeholder="Describe the issue"
+              className="complaint-textarea"
+              placeholder="Describe the issue..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            <input
-              className="form-control mb-2"
-              placeholder="Delivery Partner Name"
-              value={partnerName}
-              onChange={(e) => setPartnerName(e.target.value)}
-            />
-            <input
-              className="form-control mb-3"
-              placeholder="Delivery Partner Email"
-              value={partnerEmail}
-              onChange={(e) => setPartnerEmail(e.target.value)}
-            />
 
-            <button className="btn btn-primary me-2" onClick={submitComplaint}>
-              Submit Complaint
-            </button>
+            <label className="complaint-label">🚚 Delivery Partner Name</label>
+            <input className="complaint-input" value={partnerName} readOnly />
 
-            <button
-              className="btn btn-secondary"
-              onClick={() => setShowComplaint(false)}
-            >
-              Close
-            </button>
+            <label className="complaint-label">📧 Delivery Partner Email</label>
+            <input className="complaint-input" value={partnerEmail} readOnly />
+
+            <div className="complaint-buttons">
+              <button className="complaint-submit" onClick={submitComplaint}>
+                🚨 Submit Complaint
+              </button>
+
+              <button
+                className="complaint-close"
+                onClick={() => setShowComplaint(false)}
+              >
+                ✖ Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

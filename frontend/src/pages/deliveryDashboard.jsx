@@ -129,27 +129,6 @@ function DeliveryDashboard() {
   // 🔹 Place Bid
  const placeBid = async (taskId) => {
    try {
-     // 🔥 First check with backend (helperAgent will run here)
-     const check = await fetch("http://localhost:5000/api/agents/bid", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({
-         agentId: helperId,
-         taskId,
-         price: 0, // temporary check values
-         eta: 0,
-       }),
-     });
-
-     const data = await check.json();
-
-     // ❌ If helperAgent blocks bidding
-     if (!check.ok) {
-      setErrorPopup(data.message);
-       return;
-     }
-
-     // ✅ Only ask price if backend allows
      const price = prompt("Enter your bid price");
      const eta = prompt("Enter ETA in minutes");
 
@@ -166,10 +145,10 @@ function DeliveryDashboard() {
        }),
      });
 
-     const result = await res.json();
+     const data = await res.json();
 
      if (!res.ok) {
-       alert(result.message);
+       setErrorPopup(data.message);
        return;
      }
 

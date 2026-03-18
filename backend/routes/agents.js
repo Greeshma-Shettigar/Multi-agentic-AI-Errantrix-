@@ -5,7 +5,7 @@ const Task = require("../models/Task");
 const helperAgent = require("../agents/helperAgent");
 const runNegotiationAgent = require("../agents/negotiationRunner");
 const mongoose = require("mongoose");
- 
+
 const generateOTP = () => {
   return Math.floor(1000 + Math.random() * 9000).toString();
 };
@@ -14,7 +14,7 @@ router.post("/register", async (req, res) => {
   const a = await Agent.findOneAndUpdate(
     { agentId: req.body.agentId },
     req.body,
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
   res.json(a);
 });
@@ -36,7 +36,7 @@ router.post("/update-location", async (req, res) => {
           coordinates: [Number(longitude), Number(latitude)],
         },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedAgent) {
@@ -83,6 +83,14 @@ router.post("/bid", async (req, res) => {
       task.negotiationStatus = "in_progress";
     }
 
+    const alreadyBid = task.bids.find((b) => b.agentId === agentId);
+
+    if (alreadyBid) {
+      return res.status(400).json({
+        message: "You have already placed a bid for this task.",
+      });
+    }
+
     // 📝 Add bid
     task.bids.push({
       agentId,
@@ -91,7 +99,7 @@ router.post("/bid", async (req, res) => {
     });
 
     await task.save();
-    req.app.locals.io.emit("task_assigned", task);
+    //req.app.locals.io.emit("task_assigned", task);
 
     // 🔔 Realtime update (UI)
     req.app.locals.io.emit("new_bid", {
@@ -157,7 +165,6 @@ router.post("/bid-check", async (req, res) => {
 
   res.json({ allowed: true });
 });
-
 
 router.get("/list", async (req, res) => {
   const agents = await Agent.find().lean();
@@ -230,6 +237,5 @@ router.post("/accept/:taskId", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-  
 
 module.exports = router;
