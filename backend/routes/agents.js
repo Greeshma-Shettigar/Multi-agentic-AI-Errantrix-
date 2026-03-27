@@ -118,7 +118,9 @@ router.post("/bid", async (req, res) => {
       if (winner && winner.agentId) {
         task.assignedTo = new mongoose.Types.ObjectId(winner.agentId);
         task.status = "assigned";
-        task.negotiationStatus = "completed";
+       task.negotiationStatus = "completed";
+       task.assignedAt = new Date(); 
+       console.log("✅ assignedAt set:", task.assignedAt);
 
         // 🔐 Generate OTP here
         task.otpCode = generateOTP();
@@ -148,6 +150,57 @@ router.post("/bid", async (req, res) => {
   }
 });
 
+router.post("/user-decision", async (req, res) => {
+  const { taskId, decision } = req.body;
+
+  const task = await Task.findById(taskId);
+  if (!task) return res.status(404).json({ message: "Task not found" });
+
+  // ✅ USER GIVES EXTRA TIME
+  if (decision === "allow") {
+    task.assignedAt = new Date();
+    task.warningSent = false;
+    task.graceUsed = true;
+    task.userDecisionAsked = false;
+
+    await task.save();
+
+    req.app.locals.io.emit("extra_time_granted", {
+      taskId: task._id,
+      assignedTo: task.assignedTo?.toString(),
+      message: "🎉 You’ve been given extra time!",
+    });
+
+    return res.json({ message: "Extra time granted" });
+  }
+
+  // 🔥 HELPER IGNORE OR USER REASSIGN → SAME RESULT
+  if (decision === "helper_reject" || decision === "user_reassign") {
+    console.log("🔄 REOPENING TASK FOR BIDDING");
+
+    task.status = "planned"; // 🔥 VERY IMPORTANT
+    task.assignedTo = null;
+
+    task.assignedAt = null;
+    task.warningSent = false;
+    task.graceUsed = false;
+    task.userDecisionAsked = false;
+
+    task.bids = []; // fresh bidding
+
+    await task.save();
+
+    req.app.locals.io.emit("task_reassigned", {
+      taskId: task._id,
+      message: "🔄 Task reopened for bidding",
+    });
+
+    return res.json({ message: "Task reopened for bidding" });
+  }
+
+  res.status(400).json({ message: "Invalid decision" });
+});
+
 router.post("/bid-check", async (req, res) => {
   const { agentId, taskId } = req.body;
 
@@ -164,6 +217,33 @@ router.post("/bid-check", async (req, res) => {
   }
 
   res.json({ allowed: true });
+});
+
+router.post("/grace", async (req, res) => {
+  try {
+    const { taskId, minutes } = req.body;
+
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // 🔥 Extend time
+  task.assignedAt = new Date(Date.now() + minutes * 60000);
+
+    // Reset warning
+    task.warningSent = false;
+    task.warningAt = null;
+    task.graceUsed = true;
+
+    await task.save();
+
+    res.json({ message: "Grace time added" });
+  } catch (err) {
+     console.error("GRACE ERROR ❌", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 router.get("/list", async (req, res) => {

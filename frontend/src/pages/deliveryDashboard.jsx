@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState , useRef} from "react";
 import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
 import { io } from "socket.io-client";
+import AlertModal from "./Alertmodal.jsx";
+
 
 function DeliveryDashboard() {
   const helperId = localStorage.getItem("userId");
@@ -11,6 +13,57 @@ function DeliveryDashboard() {
   const [notification, setNotification] = useState(null);
   const [activeTab, setActiveTab] = useState("open"); // "open" or "assigned"
   const [errorPopup, setErrorPopup] = useState("");
+  const [complaintAlert, setComplaintAlert] = useState("");
+  const [delayPopup, setDelayPopup] = useState("");
+  const [gracePopup, setGracePopup] = useState(null);
+  const lastFetchTimeRef = useRef(0);
+  const [graceConfirmPopup, setGraceConfirmPopup] = useState(null);
+  const [alert, setAlert] = useState({
+    show: false,
+    type: "info",
+    message: "",
+  });
+
+  const showAlert = (type, message) => {
+    setAlert({ show: true, type, message });
+  };
+
+  const closeAlert = () => {
+    setAlert({ ...alert, show: false });
+  };
+
+  useEffect(() => {
+    if (assignedTasks.length > 0) {
+      const complaintTask = assignedTasks.find(
+        (t) => t.complaintRaised === true,
+      );
+
+      if (complaintTask) {
+        setComplaintAlert(
+          `⚠ Complaint raised for task: ${complaintTask.title}`,
+        );
+      }
+    }
+  }, [assignedTasks]);
+
+  const handleIgnore = async (taskId) => {
+    try {
+      await fetch("http://localhost:5000/api/agents/user-decision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskId,
+          decision: "helper_reject", // 🔥 THIS triggers reopen
+        }),
+      });
+
+      setGracePopup(null); // close popup
+    } catch (err) {
+      console.error("Ignore failed", err);
+    }
+  };
 
   // 🔹 Fetch Tasks
   const fetchTasks = async () => {
@@ -20,14 +73,22 @@ function DeliveryDashboard() {
         `http://127.0.0.1:5000/api/tasks/open?helperId=${helperId}`,
       );
       const openData = await openRes.json();
-      setOpenTasks(openData);
+      console.log("OPEN TASKS 👉", openData);
+      
+      setOpenTasks(Array.isArray(openData) ? openData : []);
 
       // 2️⃣ Assigned Tasks
       const assignedRes = await fetch(
         `http://127.0.0.1:5000/api/tasks/assigned/${helperId}`,
       );
       const assignedData = await assignedRes.json();
-      setAssignedTasks(assignedData);
+      setAssignedTasks(
+        assignedData.filter(
+          (t) => !(t.userConfirmed === true && t.deliveryConfirmed === true),
+        ),
+      );
+
+      console.log("Assigned tasks:", assignedData);
 
       // 🔔 Show notification if assigned
       if (assignedData.length > 0) {
@@ -38,6 +99,18 @@ function DeliveryDashboard() {
 
       console.log("OPEN TASKS 👉", openData);
       console.log("ASSIGNED TASKS 👉", assignedData);
+
+      const complaintTask = assignedData.find((t) => t.complaintRaised===true);
+
+      console.log("Complaint task found:", complaintTask);
+
+      if (complaintTask) {
+        setTimeout(() => {
+          setComplaintAlert(
+            `⚠ Complaint raised for task: ${complaintTask.title}`,
+          );
+        }, 300);
+      }
     } catch (err) {
       console.error("Failed to fetch tasks:", err);
     }
@@ -82,6 +155,12 @@ function DeliveryDashboard() {
               longitude: position.coords.longitude,
             }),
           });
+
+          const now = Date.now();
+          if (now - lastFetchTimeRef.current > 5000) {
+            fetchTasks();
+            lastFetchTimeRef.current = now;
+          }
         } catch (err) {
           console.error("Location update failed:", err);
         }
@@ -118,12 +197,55 @@ function DeliveryDashboard() {
       }
     });
 
-    socket.on("task_completed", (completedTask) => {
-      setAssignedTasks((prev) =>
-        prev.filter((task) => task._id !== completedTask._id),
-      );
+    socket.on("task_completed", (task) => {
+      console.log("✅ Task completed received:", task);
+
+      // 🔥 REMOVE ONLY WHEN USER CONFIRMED
+      if (task.userConfirmed === true) {
+        setAssignedTasks((prev) => prev.filter((t) => t._id !== task._id));
+      }
+    });
+    socket.on("complaint_raised", (data) => {
+      console.log("⚠ Complaint received:", data);
+
+      // Show only to that delivery partner
+      if (String(data.assignedTo) === String(helperId)) {
+        setComplaintAlert("⚠ Complaint raised against you for a task!");
+      }
     });
 
+    socket.on("grace_confirmed", (data) => {
+      if (String(data.assignedTo) === String(helperId)) {
+        setGraceConfirmPopup(data.message);
+      }
+    });
+
+    socket.on("task_delay_warning", (data) => {
+      if (String(data.assignedTo) === String(helperId)) {
+        setGracePopup(data);
+      }
+    });
+    
+    // socket.on("task_reassigned", (data) => {
+    //   console.log("🔄 Task reopened:", data);
+
+    //   fetchTasks(); // 🔥 reload tasks
+    // });
+
+    socket.on("extra_time_granted", (data) => {
+      if (String(data.assignedTo) === String(helperId)) {
+        setGracePopup("🎉 Customer gave you extra time! Keep going 🚀");
+      }
+    });
+
+    socket.on("task_reassigned", (data) => {
+      console.log("🔄 Task reopened:", data);
+
+      // ⚡ instant UI update
+      setAssignedTasks((prev) => prev.filter((t) => t._id !== data.taskId));
+
+      fetchTasks(); // 🔥 refresh open tasks immediately
+    });
     return () => socket.disconnect();
   }, [helperId]);
   // 🔹 Place Bid
@@ -152,12 +274,25 @@ function DeliveryDashboard() {
        return;
      }
 
-     alert("Bid placed successfully");
+     showAlert("success", "Bid placed successfully 🎉");
      fetchTasks();
    } catch (err) {
      console.error(err);
-     alert("Failed to place bid");
+     showAlert("error", "Failed to place bid");
    }
+ };
+
+ const sendGrace = async (minutes) => {
+   await fetch("http://localhost:5000/api/agents/grace", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({
+       taskId: gracePopup.taskId,
+       minutes,
+     }),
+   });
+
+   setGracePopup(null);
  };
 
   // 🔹 Verify OTP & Complete Delivery
@@ -178,9 +313,12 @@ function DeliveryDashboard() {
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.message);
+      showAlert(
+        "error",
+        data.message || "Wrong verification code. Try again ❌",
+      );
     } else {
-      alert("Delivery verified! Waiting for user confirmation.");
+      showAlert("success", "Delivery verified! Waiting for user confirmation.");
       fetchTasks();
     }
   };
@@ -269,6 +407,64 @@ function DeliveryDashboard() {
               ))
             ))}
 
+          {complaintAlert && (
+            <div className="complaint-alert-overlay">
+              <div className="complaint-alert-card">
+                <h3>⚠ Attention!</h3>
+
+                <p>{complaintAlert}</p>
+
+                <button onClick={() => setComplaintAlert("")}>Got it 👍</button>
+              </div>
+            </div>
+          )}
+
+          {delayPopup && (
+            <div className="popup-overlay">
+              <div className="popup-card warning">
+                <h3>⚠ Delivery Delay</h3>
+                <p>{delayPopup}</p>
+
+                <button onClick={() => setDelayPopup("")}>Got it 👍</button>
+              </div>
+            </div>
+          )}
+          {gracePopup && (
+            <div className="cool-popup-overlay">
+              <div className="cool-popup-card">
+                <h2>⏳ Need More Time?</h2>
+
+                <p>{gracePopup.message}</p>
+
+                <div className="popup-actions">
+                  <button onClick={() => sendGrace(2)}>+2 min</button>
+                  <button onClick={() => sendGrace(5)}>+5 min</button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      console.log("IGNORE CLICKED:", gracePopup);
+                      handleIgnore(gracePopup.taskId);
+                    }}
+                  >
+                    Ignore
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {graceConfirmPopup && (
+            <div className="popup-overlay">
+              <div className="popup-card success">
+                <h3>🎉 Extra Time Granted!</h3>
+                <p>{graceConfirmPopup}</p>
+
+                <button onClick={() => setGraceConfirmPopup(null)}>
+                  Got it 👍
+                </button>
+              </div>
+            </div>
+          )}
           {errorPopup && (
             <div className="popup-overlay">
               <div className="popup-card">
@@ -287,6 +483,12 @@ function DeliveryDashboard() {
           )}
         </div>
       </div>
+      <AlertModal
+        show={alert.show}
+        handleClose={closeAlert}
+        type={alert.type}
+        message={alert.message}
+      />
     </div>
   );
 }

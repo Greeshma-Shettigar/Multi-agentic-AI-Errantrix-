@@ -41,7 +41,18 @@ router.post("/complaint", async (req, res) => {
     task.complaintRaised = true;
     task.complaintDescription = description;
 
+    console.log("Found task:", task);
+
     await task.save();
+
+    console.log("Saved complaint:", task.complaintRaised);
+
+    // 🔥 Emit complaint event to delivery partner
+    req.app.locals.io.emit("complaint_raised", {
+      taskId: task._id,
+      message: "⚠ Complaint raised against you!",
+      assignedTo: task.assignedTo._id.toString(),
+    });
 
     res.json({
       message: "✅ Complaint submitted successfully.",

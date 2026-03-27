@@ -33,9 +33,7 @@ app.use("/api/agents", agentRoutes);
 app.use("/api/auth", authRoute); // <-- CRITICAL FIX: Auth route registered here
 app.use("/api/user", complaintRoutes);
 
-setInterval(() => {
-  monitoringAgent();
-}, 30000);
+
 // connect mongo
 // Note: useUnifiedTopology and useNewUrlParser are deprecated/defaulted in newer Mongoose versions,
 // but they won't hurt if you keep them.
@@ -51,6 +49,10 @@ mongoose
     console.log("Indexes synced");
   })
   .catch((err) => console.error(err));
+
+  setInterval(() => {
+  monitoringAgent(io);
+}, 30000); // every 30 sec
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server listening ${PORT}`));

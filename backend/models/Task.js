@@ -44,7 +44,7 @@ const TaskSchema = new mongoose.Schema(
 
     radius: {
       type: Number,
-      default: 7000, // 7km default geo-fence
+      default: 12000, // 12km default geo-fence
     },
 
     budget: { type: Number, required: true },
@@ -98,6 +98,10 @@ const TaskSchema = new mongoose.Schema(
       default: null,
     },
 
+    assignedAt: {
+      type: Date,
+    },
+
     negotiationStatus: {
       type: String,
       enum: ["none", "in_progress", "completed"],
@@ -105,6 +109,11 @@ const TaskSchema = new mongoose.Schema(
     },
     otpCode: {
       type: String,
+    },
+
+    graceUsed: {
+      type: Boolean,
+      default: false,
     },
 
     deliveryConfirmed: {
@@ -124,6 +133,18 @@ const TaskSchema = new mongoose.Schema(
 
     complaintDescription: {
       type: String,
+    },
+
+    warningSent: {
+      type: Boolean,
+      default: false,
+    },
+    warningAt: {
+      type: Date,
+    },
+    userDecisionAsked: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true },

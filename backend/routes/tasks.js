@@ -3,7 +3,7 @@ const axios = require("axios");
 const Task = require("../models/Task");
 const requesterAgent = require("../agents/requesterAgent");
 const helperAgent = require("../agents/helperAgent");
-const Agent = require("../models/Agent"); 
+const Agent = require("../models/Agent");
 
 console.log("🔥 TASK ROUTES LOADED 🔥");
 
@@ -41,8 +41,15 @@ router.post("/", async (req, res) => {
   try {
     console.log("REQ BODY 👉", req.body);
 
-    const { title,description, pickupLocation, dropLocation, budget, postedBy, radius } =
-      req.body;
+    const {
+      title,
+      description,
+      pickupLocation,
+      dropLocation,
+      budget,
+      postedBy,
+      radius,
+    } = req.body;
 
     // 🔥 1. Convert address → coordinates
     const pickupCoords = await geocodeAddress(pickupLocation);
@@ -56,7 +63,7 @@ router.post("/", async (req, res) => {
       postedBy,
       radius,
 
-      pickupAddress: pickupLocation, 
+      pickupAddress: pickupLocation,
       dropAddress: dropLocation,
 
       pickupLocation: {
@@ -94,7 +101,6 @@ router.post("/", async (req, res) => {
 
 /// GET ALL AVAILABLE TASKS (Delivery Dashboard)
 
-
 router.get("/open", async (req, res) => {
   try {
     const { helperId } = req.query;
@@ -110,7 +116,7 @@ router.get("/open", async (req, res) => {
         helper.location &&
         helper.location.coordinates?.length === 2
       ) {
-        const radius = 5000; // 5km (change anytime)
+        const radius = 12000; // 12km (change anytime)
 
         geoFilter = {
           pickupLocation: {
@@ -137,7 +143,6 @@ router.get("/open", async (req, res) => {
   }
 });
 
-
 // GET TASKS BY USER
 router.get("/user/:userId", async (req, res) => {
   try {
@@ -161,11 +166,16 @@ router.get("/assigned/:helperId", async (req, res) => {
 
     const tasks = await Task.find({
       assignedTo: helperId,
-      status: "assigned",
+      status: { $in: ["assigned", "completed"] },
+      deliveryConfirmed: false,
     }).populate("postedBy", "fullName email"); // 🔥 populate user
 
     const formattedTasks = tasks.map((task) => ({
       ...task._doc, // ✅ keep ALL existing fields
+
+      // 🔥 explicitly ensure complaint fields are sent
+      complaintRaised: task.complaintRaised || false,
+      complaintDescription: task.complaintDescription || "",
 
       // 🔥 add readable customer info
       userName: task.postedBy?.fullName,
@@ -202,21 +212,32 @@ router.post("/verify-otp/:taskId", async (req, res) => {
 });
 router.post("/complete/:taskId", async (req, res) => {
   try {
+    console.log("🔥 COMPLETE API HIT for task:", req.params.taskId);
+
     const task = await Task.findById(req.params.taskId);
 
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    if (!task.deliveryConfirmed) {
+      return res.status(400).json({
+        message: "Delivery not verified yet",
+      });
+    }
 
     task.status = "completed";
     task.userConfirmed = true;
 
     await task.save();
-    req.app.locals.io.emit("task_completed", task);
+
+    // 🔥 IMPORTANT FIX: send fresh object
+    const updatedTask = await Task.findById(task._id);
+
+    req.app.locals.io.emit("task_completed", updatedTask);
 
     res.json({ message: "Task completed successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 module.exports = router;

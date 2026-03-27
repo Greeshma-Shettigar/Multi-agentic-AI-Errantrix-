@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
 import { io } from "socket.io-client";
-import "../styles/Board.css"
+import "../styles/Board.css";
+import AlertModal from "./Alertmodal.jsx";
 
 export default function UserDashboard() {
   const userId = localStorage.getItem("userId");
@@ -23,6 +24,21 @@ export default function UserDashboard() {
   const [partnerName, setPartnerName] = useState("");
   const [partnerEmail, setPartnerEmail] = useState("");
   const [errorPopup, setErrorPopup] = useState("");
+  const [successPopup, setSuccessPopup] = useState("");
+  const [decisionPopup, setDecisionPopup] = useState(null);
+  const [alert, setAlert] = useState({
+    show: false,
+    type: "info",
+    message: "",
+  });
+
+  const showAlert = (type, message) => {
+    setAlert({ show: true, type, message });
+  };
+
+  const closeAlert = () => {
+    setAlert({ ...alert, show: false });
+  };
 
   // 🔹 Fetch user's tasks
   const fetchTasks = async () => {
@@ -37,9 +53,7 @@ export default function UserDashboard() {
 
   useEffect(() => {
     if (userId) fetchTasks();
-    
   }, [userId]);
-
 
   // 🔹 Handle input change
   const handleChange = (e) => {
@@ -78,7 +92,7 @@ export default function UserDashboard() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Task creation failed");
+        showAlert("error", data.message || "Task creation failed");
         setLoading(false);
         return;
       }
@@ -93,15 +107,35 @@ export default function UserDashboard() {
         budget: "",
       });
 
-      alert("Task posted successfully");
+      showAlert("success", "Task posted successfully 🎉");
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+      showAlert("error", "Something went wrong");
     }
 
     setLoading(false);
   };
-  
+
+  const handleDecision = async (decision) => {
+    try {
+      await fetch("http://localhost:5000/api/agents/user-decision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskId: decisionPopup.taskId,
+          decision, // "allow" or "reject"
+        }),
+      });
+
+      // 🔥 close popup
+      setDecisionPopup(null);
+    } catch (err) {
+      console.error("Decision error ❌", err);
+    }
+  };
+
   // 🔹 Complete Task
   const completeTask = async (taskId) => {
     const res = await fetch(
@@ -110,14 +144,14 @@ export default function UserDashboard() {
     );
 
     if (!res.ok) {
-      alert("Error completing task");
+      showAlert("error", "Error completing task");
       return;
     }
 
     // Remove from UI immediately
     setTasks((prev) => prev.filter((task) => task._id !== taskId));
 
-    alert("🎉 Task completed successfully!");
+    showAlert("success", "🎉 Task completed successfully!");
   };
 
   useEffect(() => {
@@ -135,6 +169,17 @@ export default function UserDashboard() {
 
     socket.on("task_completed", (completedTask) => {
       setTasks((prev) => prev.filter((task) => task._id !== completedTask._id));
+    });
+
+    socket.on("request_user_decision", (data) => {
+      console.log("👤 USER DECISION EVENT:", data);
+      if (String(data.postedBy) === String(userId)) {
+        setDecisionPopup(data);
+      }
+    });
+
+    socket.on("task_reassigned", (data) => {
+      fetchTasks(); // refresh user tasks instantly
     });
 
     return () => socket.disconnect();
@@ -158,21 +203,31 @@ export default function UserDashboard() {
       });
 
       const data = await res.json();
-        console.log("Server response:", data);
+      console.log("Server response:", data);
 
       if (!res.ok) {
         setErrorPopup(data.message);
         return;
       }
 
-      alert("Complaint submitted");
+      setSuccessPopup("🎉 Complaint submitted successfully!");
       fetchTasks();
       setShowComplaint(false);
     } catch (err) {
-       console.error("Complaint error:", err);
+      console.error("Complaint error:", err);
       setErrorPopup("Failed to submit complaint");
     }
   };
+
+  useEffect(() => {
+    if (successPopup) {
+      const timer = setTimeout(() => {
+        setSuccessPopup("");
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [successPopup]);
 
   const autoFillPartner = () => {
     const selectedTask = tasks.find(
@@ -185,11 +240,19 @@ export default function UserDashboard() {
       return;
     }
 
+    // If task exists but not assigned
+    if (!selectedTask.assignedTo) {
+      setPartnerName("");
+      setPartnerEmail("");
+      return;
+    }
+
     if (selectedTask.assignedTo) {
       setPartnerName(selectedTask.assignedTo.fullName);
       setPartnerEmail(selectedTask.assignedTo.email);
     }
   };
+
   return (
     <div className="dashboard-page">
       <Header onHelpClick={() => setShowComplaint(true)} />
@@ -267,7 +330,14 @@ export default function UserDashboard() {
                   <div>
                     <div className="task-title">{t.title}</div>
                     {t.complaintRaised && (
-                      <div className="complaint-tag">⚠ Complaint Raised</div>
+                      <div className="complaint-alert-box">
+                        <div className="complaint-header">
+                          ⚠ Complaint Raised
+                        </div>
+                        <div className="complaint-subtext">
+                          Issue reported for this task
+                        </div>
+                      </div>
                     )}
 
                     <div className="task-route">
@@ -302,7 +372,17 @@ export default function UserDashboard() {
                           <button
                             className="complete-user-btn"
                             disabled={!t.deliveryConfirmed}
-                            onClick={() => completeTask(t._id)}
+                            onClick={(e) => {
+                              e.stopPropagation(); // prevents accidental triggers
+
+                              const confirmAction = window.confirm(
+                                "Are you sure you want to complete this task?",
+                              );
+
+                              if (confirmAction) {
+                                completeTask(t._id);
+                              }
+                            }}
                           >
                             ✅ Complete
                           </button>
@@ -369,11 +449,20 @@ export default function UserDashboard() {
             />
 
             <label className="complaint-label">🚚 Delivery Partner Name</label>
-            <input className="complaint-input" value={partnerName} readOnly />
+            <input
+              className="complaint-input"
+              placeholder="Enter delivery partner name (optional)"
+              value={partnerName}
+              onChange={(e) => setPartnerName(e.target.value)}
+            />
 
             <label className="complaint-label">📧 Delivery Partner Email</label>
-            <input className="complaint-input" value={partnerEmail} readOnly />
-
+            <input
+              className="complaint-input"
+              placeholder="Enter delivery partner email (optional)"
+              value={partnerEmail}
+              onChange={(e) => setPartnerEmail(e.target.value)}
+            />
             <div className="complaint-buttons">
               <button className="complaint-submit" onClick={submitComplaint}>
                 🚨 Submit Complaint
@@ -384,6 +473,46 @@ export default function UserDashboard() {
                 onClick={() => setShowComplaint(false)}
               >
                 ✖ Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {successPopup && (
+        <div className="popup-overlay">
+          <div className="success-card">
+            <h3 className="success-title">✅ Success!</h3>
+
+            <p className="success-message">{successPopup}</p>
+
+            <button
+              className="success-close-btn"
+              onClick={() => setSuccessPopup("")}
+            >
+              ✖ Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {decisionPopup && (
+        <div className="cool-popup-overlay">
+          <div className="cool-popup-card">
+            <h2>⏳ Delivery Delay</h2>
+
+            <p>{decisionPopup.message}</p>
+
+            <div className="popup-actions">
+              <button onClick={() => handleDecision("allow")}>
+                Give More Time 👍
+              </button>
+
+              <button
+                className="danger"
+                onClick={() => handleDecision("user_reassign")}
+              >
+                Assign New Partner 🔄
               </button>
             </div>
           </div>
@@ -406,6 +535,12 @@ export default function UserDashboard() {
           </div>
         </div>
       )}
+      <AlertModal
+        show={alert.show}
+        handleClose={closeAlert}
+        type={alert.type}
+        message={alert.message}
+      />
     </div>
   );
 }
