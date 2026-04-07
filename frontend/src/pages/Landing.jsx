@@ -75,7 +75,7 @@ function Landing() {
       });
 
       const data = await res.json();
-
+       console.log(data);
       if (!res.ok) {
         alert(data.message || "Login failed");
         return;
@@ -86,6 +86,7 @@ function Landing() {
       localStorage.setItem("userId", data.user.id);
 
       if (data.user.activeRole === "user") {
+        console.log("Bye");
         navigate("/user-dashboard");
       } else {
         navigate("/delivery-dashboard");

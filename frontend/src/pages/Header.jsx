@@ -7,7 +7,11 @@ const Header = ({ activeTab, setActiveTab, onHelpClick }) => {
   const location = useLocation();
 
   const handleLogout = () => {
-    navigate("/");
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("role");
+
+    navigate("/login");
   };
 
   return (

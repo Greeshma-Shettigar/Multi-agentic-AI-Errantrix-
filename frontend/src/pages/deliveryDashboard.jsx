@@ -186,16 +186,23 @@ function DeliveryDashboard() {
       setOpenTasks((prev) => [newTask, ...prev]);
     });
 
-    socket.on("task_assigned", (updatedTask) => {
-      setOpenTasks((prev) =>
-        prev.filter((task) => task._id !== updatedTask._id),
-      );
+socket.on("task_assigned", (task) => {
+  if (String(task.assignedTo?._id || task.assignedTo) === String(helperId)) {
+    setTasks((prev) => {
+      // 🔥 avoid duplicates
+      const exists = prev.find((t) => t._id === task._id);
 
-      if (updatedTask.assignedTo === helperId) {
-        setAssignedTasks((prev) => [updatedTask, ...prev]);
-        setNotification(updatedTask);
+      if (exists) {
+        return prev.map((t) => (t._id === task._id ? { ...t, ...task } : t));
       }
+
+      return [...prev, task];
     });
+
+    // 🔥 fallback sync
+    fetchTasks();
+  }
+});
 
     socket.on("task_completed", (task) => {
       console.log("✅ Task completed received:", task);

@@ -1,5 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Landing from "./pages/Landing";
 import UserDashboard from "./pages/UserDashboard";
@@ -7,28 +6,29 @@ import DeliveryDashboard from "./pages/deliveryDashboard";
 import IntroAnimation from "./pages/IntroAnimation";
 
 function App() {
-  const [showIntro, setShowIntro] = useState(true);
+  const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowIntro(false);
-    }, 6500); // 6–7 seconds intro
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // 🔥 Show animation FIRST
-  if (showIntro) {
-    return <IntroAnimation />;
-  }
-
-  // 🔥 Then load full app with routing
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/user-dashboard" element={<UserDashboard />} />
-        <Route path="/delivery-dashboard" element={<DeliveryDashboard />} />
+        {/* Default route */}
+        <Route path="/" element={token ? <Landing /> : <IntroAnimation />} />
+
+        {/* After intro finishes it navigates to /login */}
+        <Route path="/login" element={<Landing />} />
+
+        {/* Protected routes */}
+        <Route
+          path="/user-dashboard"
+          element={ <UserDashboard />}
+        />
+
+        <Route
+          path="/delivery-dashboard"
+          element={<DeliveryDashboard /> }
+        />
+
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   );

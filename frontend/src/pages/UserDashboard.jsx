@@ -40,6 +40,25 @@ export default function UserDashboard() {
     setAlert({ ...alert, show: false });
   };
 
+  const activatePriority = async (taskId) => {
+    try {
+      await fetch("http://localhost:5000/api/agents/set-priority", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ taskId }),
+      });
+
+      setAlert({
+        show: true,
+        message: "🚀 Priority Mode Enabled! Fastest delivery will be selected.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
   // 🔹 Fetch user's tasks
   const fetchTasks = async () => {
     try {
@@ -158,12 +177,29 @@ export default function UserDashboard() {
     const socket = io("http://localhost:5000");
 
     socket.on("task_assigned", (updatedTask) => {
-      if (updatedTask.postedBy === userId) {
+      if (String(updatedTask.postedBy) === String(userId)) {
         setTasks((prev) =>
-          prev.map((task) =>
-            task._id === updatedTask._id ? updatedTask : task,
-          ),
+          prev.map((task) => {
+            if (task._id === updatedTask._id) {
+              return {
+                ...task, // keep old data
+                ...updatedTask, // merge new data
+              };
+            }
+            return task;
+          }),
         );
+        fetchTasks(); // ensure we have the latest data from server
+
+        if (updatedTask.priorityMode) {
+          setAlert({
+            show: true,
+            message:
+              "🚀 Priority Mode Activated! Closest delivery partner assigned.",
+            type: "success",
+          });
+        }
+
       }
     });
 
@@ -348,6 +384,15 @@ export default function UserDashboard() {
                     <div className="text-desc">
                       {t.description || "No description"}
                     </div>
+                    <button
+                      className="priority-btn"
+                      onClick={(e) => {
+                        e.stopPropagation(); // 🔥 THIS FIXES DOUBLE CALL
+                        activatePriority(t._id);
+                      }}
+                    >
+                      🚀 Priority
+                    </button>
 
                     {t.status === "assigned" && t.assignedTo && (
                       <div className="assigned-box mt-3">

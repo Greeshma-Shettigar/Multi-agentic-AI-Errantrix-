@@ -4,6 +4,7 @@ const Agent = require("../models/Agent");
 const Task = require("../models/Task");
 const helperAgent = require("../agents/helperAgent");
 const runNegotiationAgent = require("../agents/negotiationRunner");
+const routingAgent = require("../agents/routingAgent");
 const mongoose = require("mongoose");
 
 const generateOTP = () => {
@@ -50,6 +51,15 @@ router.post("/update-location", async (req, res) => {
   }
 });
 
+const generateNearbyLocation = (pickupLat, pickupLng) => {
+  const offset = 0.02; // ~2km variation (safe inside 12km geo-fence)
+
+  return {
+    lat: pickupLat + (Math.random() - 0.5) * offset,
+    lng: pickupLng + (Math.random() - 0.5) * offset,
+  };
+};
+
 router.post("/bid", async (req, res) => {
   try {
     console.log("🔥 BID API HIT 🔥", req.body);
@@ -92,14 +102,29 @@ router.post("/bid", async (req, res) => {
     }
 
     // 📝 Add bid
+   const [lng, lat] = task.pickupLocation.coordinates;
+
+   const location = generateNearbyLocation(lat, lng);
+
     task.bids.push({
       agentId,
       price: Number(price),
       eta: Number(eta),
+      lat: location.lat,
+      lng: location.lng,
     });
 
+    console.log("📍 Bid Location:", location);
+
     await task.save();
-    //req.app.locals.io.emit("task_assigned", task);
+
+    // 🔥 POPULATE BEFORE EMIT
+    const populatedTask = await Task.findById(task._id).populate(
+      "assignedTo",
+      "fullName email",
+    );
+
+   // req.app.locals.io.emit("task_assigned", populatedTask);
 
     // 🔔 Realtime update (UI)
     req.app.locals.io.emit("new_bid", {
@@ -109,32 +134,62 @@ router.post("/bid", async (req, res) => {
       eta,
     });
 
-    // 🤖 AUTO-NEGOTIATION (when 2 or more bids)
+    
+    // 🤖 AUTO-ASSIGN (when 2 or more bids)
     if (task.bids.length >= 2 && task.status === "negotiating") {
-      console.log("🤖 Negotiation Agent Triggered");
+      let winner;
 
-      const winner = await runNegotiationAgent(task.bids);
+      // 🔥 DECIDE AGENT BASED ON MODE
+      if (task.mode === "priority") {
+        console.log("🚀 Routing Agent Triggered");
 
-      if (winner && winner.agentId) {
-        task.assignedTo = new mongoose.Types.ObjectId(winner.agentId);
+        const [pickupLng, pickupLat] = task.pickupLocation.coordinates;
+        const [dropLng, dropLat] = task.dropLocation.coordinates;
+
+         winner = routingAgent(
+          task.bids,
+          { lat: pickupLat, lng: pickupLng },
+          { lat: dropLat, lng: dropLng },
+        );
+      } else {
+        console.log("💰 Negotiation Agent Triggered");
+
+        winner = await runNegotiationAgent(task.bids);
+      }
+       const winnerData = winner._doc || winner;
+      if (winnerData && winnerData.agentId) {
+       // task.assignedTo = new mongoose.Types.ObjectId(winner.agentId);
+      
+
+       task.assignedTo = new mongoose.Types.ObjectId(winnerData.agentId);
         task.status = "assigned";
-       task.negotiationStatus = "completed";
-       task.assignedAt = new Date(); 
-       console.log("✅ assignedAt set:", task.assignedAt);
+        task.negotiationStatus = "completed";
+        task.assignedAt = new Date();
 
-        // 🔐 Generate OTP here
+        // 🔐 OTP
         task.otpCode = generateOTP();
         task.deliveryConfirmed = false;
         task.userConfirmed = false;
 
         await task.save();
-        req.app.locals.io.emit("task_assigned", task);
-        console.log("🏆 Task assigned to:", winner.agentId);
-        console.log("🔐 Generated OTP:", task.otpCode);
+
+        const populatedTask = await Task.findById(task._id).populate(
+          "assignedTo",
+          "fullName email",
+        );
+        console.log("🏆 FINAL WINNER DATA:", winnerData);
+
+        req.app.locals.io.emit("task_assigned", populatedTask);
+
+        console.log("🏆 Task assigned to:", winnerData.agentId);
+
         return res.json({
-          message: "Negotiation completed, task assigned",
-          winner,
-          task,
+          message:
+            task.mode === "priority"
+              ? "Assigned by Routing Agent (fastest)"
+              : "Assigned by Negotiation Agent (cheapest)",
+          winner: winnerData,
+          task: populatedTask,
         });
       }
     }
@@ -251,6 +306,35 @@ router.get("/list", async (req, res) => {
   res.json(agents);
 });
 
+
+
+
+router.post("/set-priority", async (req, res) => {
+  try {
+    const { taskId } = req.body;
+
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // 🔥 Only allow before assignment
+    if (task.status !== "planned" && task.status !== "negotiating") {
+      return res.status(400).json({
+        message: "Cannot change mode after assignment",
+      });
+    }
+
+    task.mode = "priority";
+    await task.save();
+
+    res.json({ message: "Priority mode enabled" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
 // Helper accepts task
 router.post("/accept/:taskId", async (req, res) => {
   try {

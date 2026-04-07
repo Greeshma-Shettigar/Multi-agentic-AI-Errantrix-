@@ -84,6 +84,8 @@ const TaskSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
+        lat: Number,
+        lng: Number,
         createdAt: {
           type: Date,
           default: Date.now,
@@ -145,6 +147,17 @@ const TaskSchema = new mongoose.Schema(
     userDecisionAsked: {
       type: Boolean,
       default: false,
+    },
+
+    priorityMode: {
+      type: Boolean,
+      default: false,
+    },
+
+    mode: {
+      type: String,
+      enum: ["normal", "priority"],
+      default: "normal",
     },
   },
   { timestamps: true },

@@ -1,5 +1,6 @@
-function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // km
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
@@ -9,55 +10,55 @@ function getDistance(lat1, lon1, lat2, lon2) {
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) ** 2;
 
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
 
-function routingAgent(task, bids, agents) {
-  let results = [];
+console.log("----- ROUTING DEBUG -----");
+
+const routingAgent = (bids, pickup, drop) => {
+  console.log("📦 ALL BIDS:", bids);
+   const validBids = bids.filter((b) => b.lat && b.lng);
+
+   console.log("✅ VALID BIDS:", validBids.length);
+
+   if (validBids.length === 0) {
+     console.log("❌ No valid bids for routing");
+     return null;
+   }
+
+   let best = null;
+   let minDistance = Infinity;
+
 
   for (let bid of bids) {
-    const agent = agents.find((a) => a.agentId === bid.agentId);
-
-    if (!agent) continue;
-
-    // Distance from agent → pickup
-    const d1 = getDistance(
-      agent.currentLocation.lat,
-      agent.currentLocation.lng,
-      task.pickupCoords.lat,
-      task.pickupCoords.lng,
-    );
-
-    // Distance pickup → drop
-    const d2 = getDistance(
-      task.pickupCoords.lat,
-      task.pickupCoords.lng,
-      task.dropCoords.lat,
-      task.dropCoords.lng,
-    );
-
-    const totalDistance = d1 + d2;
-
-    // System ETA (40 km/h avg)
-    const systemETA = (totalDistance / 40) * 60;
-
-    // Penalty if agent lied
-    const etaDiff = Math.abs(systemETA - bid.eta);
-
-    const penalty = etaDiff > 10 ? 20 : 0;
-
-    const score = bid.price * 0.4 + systemETA * 0.4 + penalty;
-
-    results.push({
-      ...bid,
-      systemETA,
-      score,
-    });
+    console.log("👉 Checking bid:", bid);
+     if (!bid.lat || !bid.lng) {
+    console.log("⚠ Skipping invalid bid:", bid);
+    continue;
   }
 
-  results.sort((a, b) => a.score - b.score);
+  if (!pickup?.lat || !pickup?.lng || !drop?.lat || !drop?.lng) {
+    console.log("❌ Invalid pickup/drop coordinates");
+    return null;
+  }
+    const d1 = getDistance(bid.lat, bid.lng, pickup.lat, pickup.lng);
+    const d2 = getDistance(pickup.lat, pickup.lng, drop.lat, drop.lng);
 
-  return results;
-}
+    const total = d1 + d2;
+
+    console.log(`Agent: ${bid.agentId}`);
+    console.log(`Distance: ${total}`);
+
+    if (total < minDistance) {
+      minDistance = total;
+      best = {
+        ...bid,
+        distance: total, // 🔥 ADD THIS
+      };
+    }
+  }
+  console.log("🏆 ROUTING WINNER:", best);
+  return best;
+};
 
 module.exports = routingAgent;
