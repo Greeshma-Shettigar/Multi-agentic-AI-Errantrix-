@@ -1,12 +1,22 @@
 /* 🌈 Background */
 .dashboard-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    /* padding: 40px 20px; */
+    background: linear-gradient(180deg,
+            #E5F0FA 0%,
+            #D1E8FC 25%,
+            #BDE0FE 50%,
+            #A2D2FF 75%,
+            #8FC3FF 100%);
+    background-attachment: fixed;
     font-family: "Segoe UI", sans-serif;
-    width:100vw;
+    width: 100vw;
     box-sizing: border-box;
-    }
+}
+.task-title {
+    font-weight: bold;
+    color: #0B2C5F;
+    font-size: 18px;
+}
 
 /* 🔲 Glass card */
 .dashboard-card {
@@ -290,4 +300,71 @@
         transform: scale(1);
         opacity: 1;
     }
+}
+
+.task-card {
+    display: flex;
+    justify-content: space-between;
+    background: #f5f7fa;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px;
+    align-items: stretch;
+}
+
+/* LEFT */
+.task-left {
+    flex: 3;
+}
+
+/* TITLE */
+.task-title {
+    font-weight: bold;
+    color: #0B2C5F;
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+/* RIGHT */
+.task-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* RIGHT CONTENT STACK */
+.right-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* BID BUTTON */
+.bid-btn {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #1976D2, #0D47A1);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* BUDGET */
+.budget-badge {
+    background: #2E7D32;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+/* DISTANCE */
+.distance-preview {
+    background: #e3f2fd;
+    padding: 5px 10px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-top: 8px;
 }

@@ -4,6 +4,7 @@ const Task = require("../models/Task");
 const requesterAgent = require("../agents/requesterAgent");
 const helperAgent = require("../agents/helperAgent");
 const Agent = require("../models/Agent");
+const getDistance = require("../utils/getDistance");
 
 console.log("🔥 TASK ROUTES LOADED 🔥");
 
@@ -106,6 +107,8 @@ router.get("/open", async (req, res) => {
     const { helperId } = req.query;
 
     let geoFilter = {};
+    let agentLat = null;
+    let agentLng = null;
 
     // 🔥 If helperId provided → apply geo-fencing
     if (helperId) {
@@ -117,7 +120,10 @@ router.get("/open", async (req, res) => {
         helper.location.coordinates?.length === 2
       ) {
         const radius = 12000; // 12km (change anytime)
+        const [lng, lat] = helper.location.coordinates;
 
+        agentLat = lat;
+        agentLng = lng;
         geoFilter = {
           pickupLocation: {
             $near: {
@@ -136,7 +142,25 @@ router.get("/open", async (req, res) => {
       ...geoFilter,
     }).populate("postedBy", "fullName");
 
-    res.json(tasks);
+   // res.json(tasks); // 🔥 Add distance calculation
+    const tasksWithDistance = tasks.map((task) => {
+      if (!agentLat || !agentLng) return task.toObject();
+
+      const [pickupLng, pickupLat] = task.pickupLocation.coordinates;
+      const [dropLng, dropLat] = task.dropLocation.coordinates;
+
+      const d1 = getDistance(agentLat, agentLng, pickupLat, pickupLng);
+      const d2 = getDistance(pickupLat, pickupLng, dropLat, dropLng);
+
+      const totalDistance = d1 + d2;
+
+      return {
+        ...task._doc,
+        distance: totalDistance,
+      };
+    });
+
+    res.json(tasksWithDistance);
   } catch (err) {
     console.error("OPEN TASK FETCH ERROR ❌", err);
     res.status(500).json({ message: err.message });

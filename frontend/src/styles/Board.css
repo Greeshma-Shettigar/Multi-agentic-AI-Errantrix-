@@ -504,3 +504,36 @@
 .modal-info {
     border-top: 5px solid #0d6efd;
 }
+.distance-preview {
+    background: #eef6ff;
+    color: #2563eb;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 6px;
+    display: inline-block;
+}
+
+.priority-btn {
+    background: linear-gradient(135deg, #ff7e5f, #feb47b);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(255, 126, 95, 0.3);
+}
+
+.priority-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(255, 126, 95, 0.4);
+}
+
+.priority-btn:disabled {
+    background: #ccc;
+    color: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+}

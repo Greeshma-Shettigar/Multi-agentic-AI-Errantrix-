@@ -13,7 +13,7 @@ export default function UserDashboard() {
     description: "",
     pickupLocation: "",
     dropLocation: "",
-    budget: "",
+    
   });
 
   const [tasks, setTasks] = useState([]);
@@ -103,7 +103,7 @@ export default function UserDashboard() {
           pickupAddress: task.pickupLocation,
           dropAddress: task.dropLocation,
 
-          budget: task.budget,
+          
           postedBy: userId,
         }),
       });
@@ -123,7 +123,7 @@ export default function UserDashboard() {
         description: "",
         pickupLocation: "",
         dropLocation: "",
-        budget: "",
+        
       });
 
       showAlert("success", "Task posted successfully 🎉");
@@ -336,15 +336,7 @@ export default function UserDashboard() {
                 required
               />
 
-              <input
-                type="number"
-                className="form-control mb-4"
-                name="budget"
-                placeholder="Budget (₹)"
-                value={task.budget}
-                onChange={handleChange}
-                required
-              />
+              
 
               <button className="btn-modern w-100" disabled={loading}>
                 {loading ? "Posting..." : "🚀 Post Task"}
@@ -386,12 +378,13 @@ export default function UserDashboard() {
                     </div>
                     <button
                       className="priority-btn"
+                      disabled={t.status === "assigned" || t.assignedTo}
                       onClick={(e) => {
                         e.stopPropagation(); // 🔥 THIS FIXES DOUBLE CALL
                         activatePriority(t._id);
                       }}
                     >
-                      🚀 Priority
+                      {t.status === "assigned" ? "✅ Assigned" : "🚀 Priority"}
                     </button>
 
                     {t.status === "assigned" && t.assignedTo && (
@@ -443,7 +436,7 @@ export default function UserDashboard() {
                   </div>
 
                   <div className="text-end">
-                    <div className="budget-badge">₹{t.budget}</div>
+                    
                     <div className="mt-2">
                       <span
                         className={`badge ${

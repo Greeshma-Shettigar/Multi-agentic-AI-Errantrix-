@@ -159,6 +159,11 @@ const TaskSchema = new mongoose.Schema(
       enum: ["normal", "priority"],
       default: "normal",
     },
+
+    assignedDistance: {
+      type: Number,
+      default: null,
+    },
   },
   { timestamps: true },
 );

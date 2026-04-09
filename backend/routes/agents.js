@@ -162,6 +162,7 @@ router.post("/bid", async (req, res) => {
       
 
        task.assignedTo = new mongoose.Types.ObjectId(winnerData.agentId);
+       task.assignedDistance = winnerData.distance;
         task.status = "assigned";
         task.negotiationStatus = "completed";
         task.assignedAt = new Date();

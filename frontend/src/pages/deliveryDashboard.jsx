@@ -3,6 +3,7 @@ import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
 import { io } from "socket.io-client";
 import AlertModal from "./Alertmodal.jsx";
+import InputModal from "./InputModal.jsx";
 
 
 function DeliveryDashboard() {
@@ -23,6 +24,12 @@ function DeliveryDashboard() {
     type: "info",
     message: "",
   });
+  // 🔥 NEW STATES FOR MODALS
+  const [showBidModal, setShowBidModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpTaskId, setOtpTaskId] = useState(null);
 
   const showAlert = (type, message) => {
     setAlert({ show: true, type, message });
@@ -74,7 +81,7 @@ function DeliveryDashboard() {
       );
       const openData = await openRes.json();
       console.log("OPEN TASKS 👉", openData);
-      
+
       setOpenTasks(Array.isArray(openData) ? openData : []);
 
       // 2️⃣ Assigned Tasks
@@ -100,7 +107,9 @@ function DeliveryDashboard() {
       console.log("OPEN TASKS 👉", openData);
       console.log("ASSIGNED TASKS 👉", assignedData);
 
-      const complaintTask = assignedData.find((t) => t.complaintRaised===true);
+      const complaintTask = assignedData.find(
+        (t) => t.complaintRaised === true,
+      );
 
       console.log("Complaint task found:", complaintTask);
 
@@ -186,23 +195,27 @@ function DeliveryDashboard() {
       setOpenTasks((prev) => [newTask, ...prev]);
     });
 
-socket.on("task_assigned", (task) => {
-  if (String(task.assignedTo?._id || task.assignedTo) === String(helperId)) {
-    setTasks((prev) => {
-      // 🔥 avoid duplicates
-      const exists = prev.find((t) => t._id === task._id);
+    socket.on("task_assigned", (task) => {
+      if (
+        String(task.assignedTo?._id || task.assignedTo) === String(helperId)
+      ) {
+        setTasks((prev) => {
+          // 🔥 avoid duplicates
+          const exists = prev.find((t) => t._id === task._id);
 
-      if (exists) {
-        return prev.map((t) => (t._id === task._id ? { ...t, ...task } : t));
+          if (exists) {
+            return prev.map((t) =>
+              t._id === task._id ? { ...t, ...task } : t,
+            );
+          }
+
+          return [...prev, task];
+        });
+
+        // 🔥 fallback sync
+        fetchTasks();
       }
-
-      return [...prev, task];
     });
-
-    // 🔥 fallback sync
-    fetchTasks();
-  }
-});
 
     socket.on("task_completed", (task) => {
       console.log("✅ Task completed received:", task);
@@ -232,7 +245,7 @@ socket.on("task_assigned", (task) => {
         setGracePopup(data);
       }
     });
-    
+
     // socket.on("task_reassigned", (data) => {
     //   console.log("🔄 Task reopened:", data);
 
@@ -256,60 +269,61 @@ socket.on("task_assigned", (task) => {
     return () => socket.disconnect();
   }, [helperId]);
   // 🔹 Place Bid
- const placeBid = async (taskId) => {
-   try {
-     const price = prompt("Enter your bid price");
-     const eta = prompt("Enter ETA in minutes");
+  const placeBid = (taskId) => {
+    setSelectedTask(taskId);
+    setShowBidModal(true);
+  };
+  const submitBid = async (price) => {
+    try {
+      const res = await fetch("http://localhost:5000/api/agents/bid", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          agentId: helperId,
+          taskId: selectedTask,
+          price,
+          eta: 1, // ✅ dummy (since you removed ETA)
+        }),
+      });
 
-     if (!price || !eta) return;
+      const data = await res.json();
 
-     const res = await fetch("http://localhost:5000/api/agents/bid", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({
-         agentId: helperId,
-         taskId,
-         price,
-         eta,
-       }),
-     });
+      if (!res.ok) {
+        setErrorPopup(data.message);
+        return;
+      }
 
-     const data = await res.json();
+      showAlert("success", "Bid placed successfully 🎉");
+      fetchTasks();
+    } catch (err) {
+      console.error(err);
+      showAlert("error", "Failed to place bid");
+    }
+  };
 
-     if (!res.ok) {
-       setErrorPopup(data.message);
-       return;
-     }
+  const sendGrace = async (minutes) => {
+    await fetch("http://localhost:5000/api/agents/grace", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskId: gracePopup.taskId,
+        minutes,
+      }),
+    });
 
-     showAlert("success", "Bid placed successfully 🎉");
-     fetchTasks();
-   } catch (err) {
-     console.error(err);
-     showAlert("error", "Failed to place bid");
-   }
- };
-
- const sendGrace = async (minutes) => {
-   await fetch("http://localhost:5000/api/agents/grace", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({
-       taskId: gracePopup.taskId,
-       minutes,
-     }),
-   });
-
-   setGracePopup(null);
- };
+    setGracePopup(null);
+  };
 
   // 🔹 Verify OTP & Complete Delivery
-  const verifyOTP = async (taskId) => {
-    const code = prompt("Enter delivery confirmation code");
-
-    if (!code) return;
-
+  const verifyOTP = (taskId) => {
+    setOtpTaskId(taskId);
+    setShowOtpModal(true);
+  };
+  const submitOtp = async (code) => {
     const res = await fetch(
-      `http://localhost:5000/api/tasks/verify-otp/${taskId}`,
+      `http://localhost:5000/api/tasks/verify-otp/${otpTaskId}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -325,7 +339,7 @@ socket.on("task_assigned", (task) => {
         data.message || "Wrong verification code. Try again ❌",
       );
     } else {
-      showAlert("success", "Delivery verified! Waiting for user confirmation.");
+      showAlert("success", "Delivery verified!");
       fetchTasks();
     }
   };
@@ -351,9 +365,7 @@ socket.on("task_assigned", (task) => {
               <p>
                 <strong>🏁 Drop:</strong> {notification.dropAddress}
               </p>
-              <p>
-                <strong>💰 Budget:</strong> ₹{notification.budget}
-              </p>
+              
 
               {notification.description && (
                 <p>
@@ -389,8 +401,9 @@ socket.on("task_assigned", (task) => {
               <p className="text-muted">No available tasks</p>
             ) : (
               openTasks.map((task) => (
-                <div key={task._id} className="task-item">
-                  <div>
+                <div key={task._id} className="task-card">
+                  {/* LEFT SIDE */}
+                  <div className="task-left">
                     <div className="task-title">{task.title}</div>
 
                     <div className="task-route">
@@ -401,15 +414,26 @@ socket.on("task_assigned", (task) => {
                       {task.description || "No description"}
                     </div>
 
-                    <button
-                      className="btn btn-primary btn-sm mt-2"
-                      onClick={() => placeBid(task._id)}
-                    >
-                      Place Bid
-                    </button>
+                    {task.distance && (
+                      <p className="distance-preview">
+                        📏 Total Distance: {task.distance.toFixed(2)} km
+                      </p>
+                    )}
                   </div>
 
-                  <div className="budget-badge">₹{task.budget}</div>
+                  {/* RIGHT SIDE */}
+                  <div className="task-right">
+                    <div className="right-content">
+                      
+
+                      <button
+                        className="btn btn-primary bid-btn"
+                        onClick={() => placeBid(task._id)}
+                      >
+                        Place Bid
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))
             ))}
@@ -495,6 +519,29 @@ socket.on("task_assigned", (task) => {
         handleClose={closeAlert}
         type={alert.type}
         message={alert.message}
+      />
+      {/* 🔥 BID MODAL */}
+      <InputModal
+        show={showBidModal}
+        title="💰 Place Your Bid"
+        placeholder="Enter your price"
+        onClose={() => setShowBidModal(false)}
+        onSubmit={(value) => {
+          submitBid(value);
+          setShowBidModal(false);
+        }}
+      />
+
+      {/* 🔥 OTP MODAL */}
+      <InputModal
+        show={showOtpModal}
+        title="🔐 Enter Verification Code"
+        placeholder="Enter OTP"
+        onClose={() => setShowOtpModal(false)}
+        onSubmit={(value) => {
+          submitOtp(value);
+          setShowOtpModal(false);
+        }}
       />
     </div>
   );

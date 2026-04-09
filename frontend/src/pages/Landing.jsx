@@ -84,6 +84,8 @@ function Landing() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.activeRole);
       localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("name", data.user.fullName);
+      localStorage.setItem("email", data.user.email);
 
       if (data.user.activeRole === "user") {
         console.log("Bye");

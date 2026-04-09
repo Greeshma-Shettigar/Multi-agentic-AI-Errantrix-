@@ -1,0 +1,108 @@
+/* 🌫 Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 💎 Glass Card */
+.modal-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(18px);
+    border-radius: 20px;
+    padding: 30px;
+    width: 360px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+
+    animation: modalPop 0.35s ease;
+}
+
+/* ✨ Animation */
+@keyframes modalPop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 📝 Title */
+.modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: #fff;
+}
+
+/* ✏ Input */
+.modal-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+    margin-bottom: 18px;
+    font-size: 14px;
+
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.modal-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* 🎯 Buttons container */
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* ❌ Cancel button */
+.btn-cancel {
+    flex: 1;
+    background: rgba(255, 99, 99, 0.2);
+    color: #ff4d4d;
+    border: 1px solid rgba(255, 99, 99, 0.4);
+    padding: 10px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 99, 99, 0.35);
+    transform: translateY(-1px);
+}
+
+/* ✅ Submit button */
+.btn-submit {
+    flex: 1;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(102, 126, 234, 0.4);
+}

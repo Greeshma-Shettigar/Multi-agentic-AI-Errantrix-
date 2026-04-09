@@ -4,7 +4,7 @@ const MAX_IDLE_TIME = 2 * 60 * 1000; // 2 min
 const GRACE_TIME = 1 * 60 * 1000; // extra 1 min
 
 const monitoringAgent = async (io) => {
-  console.log("🕵️ Monitoring Agent running...");
+  
 
   const now = new Date();
 

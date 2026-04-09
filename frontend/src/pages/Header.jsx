@@ -3,6 +3,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "../styles/Header.css";
 
 const Header = ({ activeTab, setActiveTab, onHelpClick }) => {
+  const [showSidebar, setShowSidebar] = React.useState(false);
+
+  const toggleSidebar = () => {
+    setShowSidebar(!showSidebar);
+  };
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -10,64 +15,73 @@ const Header = ({ activeTab, setActiveTab, onHelpClick }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("role");
-
     navigate("/login");
   };
 
   return (
     <header className="app-header">
-      {/* LEFT SIDE */}
-      <div className="header-left">
+      {/* LEFT: Profile */}
+      <div className="left-section">
+        <div className="profile-circle" onClick={toggleSidebar}>
+          👤
+        </div>
+      </div>
+
+      {/* CENTER: Title */}
+      <div className="center-section">
         {location.pathname === "/delivery-dashboard" ? (
-          <>
-            <h2>🚚 Delivery Partner Dashboard</h2>
-            <p>Browse tasks and manage assignments</p>
-          </>
+          <h1>Helper Dashboard</h1>
         ) : (
-          <>
-            <h2>🧭 Neighborhood Errand Dashboard</h2>
-            <p>Post tasks and let intelligent agents handle them.</p>
-          </>
+          <h1>User Dashboard</h1>
         )}
       </div>
 
-      {/* RIGHT SIDE */}
-      <div className="header-right">
+      {/* RIGHT: Buttons */}
+      <div className="right-section">
+        {/* Help button (only for user dashboard) */}
         {location.pathname !== "/delivery-dashboard" && (
           <button className="help-btn" onClick={onHelpClick}>
             ❓ Help
           </button>
         )}
+
+        {/* Tabs (only for delivery dashboard) */}
         {location.pathname === "/delivery-dashboard" && (
-          <div className="header-tabs">
+          <>
             <button
-              className={`header-tab ${activeTab === "open" ? "active" : ""}`}
+              className={`nav-btn ${activeTab === "open" ? "active" : ""}`}
               onClick={() => setActiveTab("open")}
             >
-              🟢 Tasks
+              Tasks
             </button>
 
             <button
-              className={`header-tab ${
-                activeTab === "assigned" ? "active" : ""
-              }`}
+              className={`nav-btn ${activeTab === "assigned" ? "active" : ""}`}
               onClick={() => setActiveTab("assigned")}
             >
-              🚚 Assigned
+              Assigned
             </button>
-          </div>
+          </>
         )}
-
-        <img
-          src="https://via.placeholder.com/40"
-          alt="Profile"
-          className="profile-image"
-        />
 
         <button className="logout-btn" onClick={handleLogout}>
           Logout
         </button>
       </div>
+      {showSidebar && (
+        <div className="sidebar">
+          <h4>👤 Profile</h4>
+
+          <p>
+            <b>Name:</b> {localStorage.getItem("name") || "User"}
+          </p>
+          <p>
+            <b>Email:</b> {localStorage.getItem("email") || "example@mail.com"}
+          </p>
+
+          <button onClick={toggleSidebar}>Close</button>
+        </div>
+      )}
     </header>
   );
 };
