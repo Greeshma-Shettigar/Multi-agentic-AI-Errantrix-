@@ -27,6 +27,28 @@ app.use(express.urlencoded({ extended: true }));
 // expose io to routes via app.locals
 app.locals.io = io;
 
+io.on("connection", (socket) => {
+  console.log("🟢 Connected:", socket.id);
+
+  // 📌 Join task room
+  socket.on("join_task_room", (taskId) => {
+    socket.join(taskId);
+    console.log("Joined room:", taskId);
+  });
+
+  // 💬 Send message
+  socket.on("send_message", (data) => {
+    console.log("Message:", data);
+
+    // send to all users in same task room
+    io.to(data.taskId).emit("receive_message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Disconnected:", socket.id);
+  });
+});
+
 // === ROUTES REGISTRATION ===
 app.use("/api/tasks", taskRoutes);
 app.use("/api/agents", agentRoutes);

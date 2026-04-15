@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 import "../styles/Dashboard.css";
 import Header from "./Header.jsx";
 import { io } from "socket.io-client";
 import "../styles/Board.css";
 import AlertModal from "./Alertmodal.jsx";
 
+ const socket = io("http://localhost:5000");
+
 export default function UserDashboard() {
   const userId = localStorage.getItem("userId");
+
 
   const [task, setTask] = useState({
     title: "",
@@ -31,6 +34,12 @@ export default function UserDashboard() {
     type: "info",
     message: "",
   });
+  const [showChat, setShowChat] = useState(false);
+  const [currentTask, setCurrentTask] = useState(null);
+  const [messages, setMessages] = useState({});
+  const [newMessage, setNewMessage] = useState("");
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const messagesEndRef = useRef(null);
 
   const showAlert = (type, message) => {
     setAlert({ show: true, type, message });
@@ -71,12 +80,42 @@ export default function UserDashboard() {
   };
 
   useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
     if (userId) fetchTasks();
   }, [userId]);
 
   // 🔹 Handle input change
   const handleChange = (e) => {
     setTask({ ...task, [e.target.name]: e.target.value });
+  };
+
+  const openChat = (task) => {
+    setCurrentTask(task);
+    setShowChat(true);
+
+    socket.emit("join_task_room", task._id);
+
+    setUnreadCounts((prev) => ({
+      ...prev,
+      [task._id]: 0,
+    }));
+  };
+
+  const sendMessage = () => {
+    if (!newMessage.trim()) return;
+
+    const msg = {
+      taskId: currentTask._id,
+      sender: userId,
+      message: newMessage,
+    };
+
+    socket.emit("send_message", msg);
+    
+    setNewMessage("");
   };
 
   // 🔹 Submit new task (NO GEOCODING HERE)
@@ -174,22 +213,16 @@ export default function UserDashboard() {
   };
 
   useEffect(() => {
-    const socket = io("http://localhost:5000");
-
-    socket.on("task_assigned", (updatedTask) => {
+    // ✅ TASK ASSIGNED
+    const handleTaskAssigned = (updatedTask) => {
       if (String(updatedTask.postedBy) === String(userId)) {
         setTasks((prev) =>
-          prev.map((task) => {
-            if (task._id === updatedTask._id) {
-              return {
-                ...task, // keep old data
-                ...updatedTask, // merge new data
-              };
-            }
-            return task;
-          }),
+          prev.map((task) =>
+            task._id === updatedTask._id ? { ...task, ...updatedTask } : task,
+          ),
         );
-        fetchTasks(); // ensure we have the latest data from server
+
+        fetchTasks();
 
         if (updatedTask.priorityMode) {
           setAlert({
@@ -199,27 +232,60 @@ export default function UserDashboard() {
             type: "success",
           });
         }
-
       }
-    });
+    };
 
-    socket.on("task_completed", (completedTask) => {
+    // ✅ TASK COMPLETED
+    const handleTaskCompleted = (completedTask) => {
       setTasks((prev) => prev.filter((task) => task._id !== completedTask._id));
-    });
+    };
 
-    socket.on("request_user_decision", (data) => {
+    // ✅ USER DECISION
+    const handleUserDecision = (data) => {
       console.log("👤 USER DECISION EVENT:", data);
       if (String(data.postedBy) === String(userId)) {
         setDecisionPopup(data);
       }
-    });
+    };
 
-    socket.on("task_reassigned", (data) => {
-      fetchTasks(); // refresh user tasks instantly
-    });
+    // ✅ CHAT MESSAGE
+const handleReceiveMessage = (data) => {
+  // ✅ ALWAYS store message
+  setMessages((prev) => ({
+    ...prev,
+    [data.taskId]: [...(prev[data.taskId] || []), data],
+  }));
 
-    return () => socket.disconnect();
-  }, []);
+  // ✅ unread logic
+  if (!currentTask || data.taskId !== currentTask._id) {
+    setUnreadCounts((prev) => ({
+      ...prev,
+      [data.taskId]: (prev[data.taskId] || 0) + 1,
+    }));
+  }
+};
+
+    // ✅ TASK REASSIGNED
+    const handleTaskReassigned = () => {
+      fetchTasks();
+    };
+
+    // 🔥 REGISTER EVENTS
+    socket.on("task_assigned", handleTaskAssigned);
+    socket.on("task_completed", handleTaskCompleted);
+    socket.on("request_user_decision", handleUserDecision);
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("task_reassigned", handleTaskReassigned);
+
+    // 🔥 CLEANUP (VERY IMPORTANT)
+    return () => {
+      socket.off("task_assigned", handleTaskAssigned);
+      socket.off("task_completed", handleTaskCompleted);
+      socket.off("request_user_decision", handleUserDecision);
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("task_reassigned", handleTaskReassigned);
+    };
+  }, [userId, currentTask]);
 
   const submitComplaint = async () => {
     console.log("Complaint button clicked");
@@ -336,8 +402,6 @@ export default function UserDashboard() {
                 required
               />
 
-              
-
               <button className="btn-modern w-100" disabled={loading}>
                 {loading ? "Posting..." : "🚀 Post Task"}
               </button>
@@ -357,6 +421,9 @@ export default function UserDashboard() {
                 <div key={t._id} className="task-item">
                   <div>
                     <div className="task-title">{t.title}</div>
+                    <div className="text-desc">
+                      <strong> {t.description || "No description"}</strong>
+                    </div>
                     {t.complaintRaised && (
                       <div className="complaint-alert-box">
                         <div className="complaint-header">
@@ -373,9 +440,6 @@ export default function UserDashboard() {
                       <p>🏁 Drop: {t.dropAddress}</p>
                     </div>
 
-                    <div className="text-desc">
-                      {t.description || "No description"}
-                    </div>
                     <button
                       className="priority-btn"
                       disabled={t.status === "assigned" || t.assignedTo}
@@ -422,7 +486,7 @@ export default function UserDashboard() {
                               }
                             }}
                           >
-                            ✅ Complete
+                            Complete
                           </button>
 
                           {!t.deliveryConfirmed && (
@@ -430,13 +494,23 @@ export default function UserDashboard() {
                               ⏳ Waiting for delivery partner to verify code...
                             </p>
                           )}
+                          <button
+                            className="chat-btn"
+                            onClick={() => openChat(t)}
+                          >
+                            💬 Chat
+                            {unreadCounts[t._id] > 0 && (
+                              <span className="chat-badge">
+                                {unreadCounts[t._id]}
+                              </span>
+                            )}
+                          </button>
                         </div>
                       </div>
                     )}
                   </div>
 
                   <div className="text-end">
-                    
                     <div className="mt-2">
                       <span
                         className={`badge ${
@@ -570,6 +644,41 @@ export default function UserDashboard() {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {showChat && (
+        <div className="chat-sidebar">
+          <div className="chat-header">
+            <h5>Chat</h5>
+            <button onClick={() => setShowChat(false)}>✖</button>
+          </div>
+
+          <div className="chat-messages">
+            {(messages[currentTask?._id] || []).map((msg, i) => (
+              <div
+                key={i}
+                className={msg.sender === userId ? "my-msg" : "other-msg"}
+              >
+                <div className="msg-text">{msg.message}</div>
+                <div className="msg-time">
+                  {new Date(msg.time || Date.now()).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef}></div>
+          </div>
+          <div className="chat-input">
+            <input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+            />
+            <button onClick={sendMessage}>Send</button>
           </div>
         </div>
       )}

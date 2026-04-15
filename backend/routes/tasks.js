@@ -47,7 +47,7 @@ router.post("/", async (req, res) => {
       description,
       pickupLocation,
       dropLocation,
-      budget,
+      
       postedBy,
       radius,
     } = req.body;
@@ -60,7 +60,7 @@ router.post("/", async (req, res) => {
     const taskData = {
       title,
       description,
-      budget,
+    
       postedBy,
       radius,
 

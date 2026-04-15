@@ -303,13 +303,10 @@
 }
 
 .task-card {
-    display: flex;
-    justify-content: space-between;
     background: #f5f7fa;
-    padding: 20px;
+    padding: 25px;
     border-radius: 15px;
     margin: 20px;
-    align-items: stretch;
 }
 
 /* LEFT */
@@ -319,10 +316,10 @@
 
 /* TITLE */
 .task-title {
+    font-size: 20px;
     font-weight: bold;
     color: #0B2C5F;
-    font-size: 18px;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
 }
 
 /* RIGHT */
@@ -367,4 +364,164 @@
     border-radius: 8px;
     display: inline-block;
     margin-top: 8px;
+}
+.chat-btn {
+    position: relative;
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 20px;
+    margin-left: 10px;
+}
+
+.chat-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: red;
+    color: white;
+    font-size: 12px;
+    padding: 3px 7px;
+    border-radius: 50%;
+}
+
+.chat-sidebar {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 520px;
+    height: 100%;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+     box-shadow: -6px 0 20px rgba(0, 0, 0, 0.4);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    z-index: 2000;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.chat-header {
+    padding: 15px;
+    background: #1e293b;
+    display: flex;
+    justify-content: space-between;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.my-msg {
+    align-self: flex-start;
+    /* 👈 LEFT */
+    background: #22c55e;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 70%;
+}
+
+.other-msg {
+    align-self: flex-end;
+    /* 👈 RIGHT */
+    background: #334155;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 70%;
+}
+.msg-time {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.chat-input {
+    display: flex;
+    padding: 10px;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 8px;
+}
+
+.chat-input button {
+    margin-left: 5px;
+}
+.task-desc {
+    margin-bottom: 20px;
+    color: #444;
+}
+
+.location-box {
+    background: #e3f2fd;
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.location-item {
+    width: 48%;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.complete-btn {
+    background: #2e7d32;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+}
+
+.chat-btn {
+    background: #1976d2;
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    position: relative;
+}
+
+.chat-badge {
+    background: red;
+    color: white;
+    border-radius: 50%;
+    padding: 3px 7px;
+    font-size: 12px;
+    margin-left: 6px;
+}
+
+.customer-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+.center {
+    text-align: center;
 }

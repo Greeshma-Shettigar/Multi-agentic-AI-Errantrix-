@@ -5,9 +5,13 @@ import { io } from "socket.io-client";
 import AlertModal from "./Alertmodal.jsx";
 import InputModal from "./InputModal.jsx";
 
+  const socket = io("http://localhost:5000");
+
 
 function DeliveryDashboard() {
   const helperId = localStorage.getItem("userId");
+   const myId = localStorage.getItem("userId");
+
 
   const [openTasks, setOpenTasks] = useState([]);
   const [assignedTasks, setAssignedTasks] = useState([]);
@@ -30,6 +34,12 @@ function DeliveryDashboard() {
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpTaskId, setOtpTaskId] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [currentTask, setCurrentTask] = useState(null);
+  const [messages, setMessages] = useState({});
+  const [input, setInput] = useState("");
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const messagesEndRef = useRef(null);
 
   const showAlert = (type, message) => {
     setAlert({ show: true, type, message });
@@ -39,6 +49,15 @@ function DeliveryDashboard() {
     setAlert({ ...alert, show: false });
   };
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+    useEffect(() => {
+      assignedTasks.forEach((task) => {
+        socket.emit("join_task_room", task._id);
+      });
+    }, [assignedTasks]);
   useEffect(() => {
     if (assignedTasks.length > 0) {
       const complaintTask = assignedTasks.find(
@@ -52,6 +71,34 @@ function DeliveryDashboard() {
       }
     }
   }, [assignedTasks]);
+
+  const openChat = (task) => {
+    setCurrentTask(task);
+    setChatOpen(true);
+    //setMessages([]);
+
+    socket.emit("join_task_room", task._id);
+
+    // reset unread count
+    setUnreadCounts((prev) => ({
+      ...prev,
+      [task._id]: 0,
+    }));
+  };
+  const sendMessage = () => {
+    if (!input.trim()) return;
+
+    const msg = {
+      taskId: currentTask._id,
+      sender: localStorage.getItem("userId"),
+      message: input,
+    };
+
+    socket.emit("send_message", msg);
+
+   
+    setInput("");
+  };
 
   const handleIgnore = async (taskId) => {
     try {
@@ -69,6 +116,19 @@ function DeliveryDashboard() {
       setGracePopup(null); // close popup
     } catch (err) {
       console.error("Ignore failed", err);
+    }
+  };
+  const handleReceiveMessage = (data) => {
+    setMessages((prev) => ({
+      ...prev,
+      [data.taskId]: [...(prev[data.taskId] || []), data],
+    }));
+
+    if (!currentTask || data.taskId !== currentTask._id) {
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [data.taskId]: (prev[data.taskId] || 0) + 1,
+      }));
     }
   };
 
@@ -151,6 +211,7 @@ function DeliveryDashboard() {
       console.log("Geolocation not supported");
       return;
     }
+    
 
     const watchId = navigator.geolocation.watchPosition(
       async (position) => {
@@ -189,8 +250,6 @@ function DeliveryDashboard() {
 
   // ✅ Socket Connection (SEPARATE HOOK)
   useEffect(() => {
-    const socket = io("http://localhost:5000");
-
     socket.on("task_created", (newTask) => {
       setOpenTasks((prev) => [newTask, ...prev]);
     });
@@ -200,7 +259,6 @@ function DeliveryDashboard() {
         String(task.assignedTo?._id || task.assignedTo) === String(helperId)
       ) {
         setTasks((prev) => {
-          // 🔥 avoid duplicates
           const exists = prev.find((t) => t._id === task._id);
 
           if (exists) {
@@ -212,23 +270,17 @@ function DeliveryDashboard() {
           return [...prev, task];
         });
 
-        // 🔥 fallback sync
         fetchTasks();
       }
     });
 
     socket.on("task_completed", (task) => {
-      console.log("✅ Task completed received:", task);
-
-      // 🔥 REMOVE ONLY WHEN USER CONFIRMED
       if (task.userConfirmed === true) {
         setAssignedTasks((prev) => prev.filter((t) => t._id !== task._id));
       }
     });
-    socket.on("complaint_raised", (data) => {
-      console.log("⚠ Complaint received:", data);
 
-      // Show only to that delivery partner
+    socket.on("complaint_raised", (data) => {
       if (String(data.assignedTo) === String(helperId)) {
         setComplaintAlert("⚠ Complaint raised against you for a task!");
       }
@@ -246,12 +298,6 @@ function DeliveryDashboard() {
       }
     });
 
-    // socket.on("task_reassigned", (data) => {
-    //   console.log("🔄 Task reopened:", data);
-
-    //   fetchTasks(); // 🔥 reload tasks
-    // });
-
     socket.on("extra_time_granted", (data) => {
       if (String(data.assignedTo) === String(helperId)) {
         setGracePopup("🎉 Customer gave you extra time! Keep going 🚀");
@@ -259,14 +305,24 @@ function DeliveryDashboard() {
     });
 
     socket.on("task_reassigned", (data) => {
-      console.log("🔄 Task reopened:", data);
-
-      // ⚡ instant UI update
       setAssignedTasks((prev) => prev.filter((t) => t._id !== data.taskId));
-
-      fetchTasks(); // 🔥 refresh open tasks immediately
+      fetchTasks();
     });
-    return () => socket.disconnect();
+
+    // 🔥 CHAT LISTENER (ADD HERE)
+    
+   socket.on("receive_message", handleReceiveMessage);
+    return () => {
+      socket.off("task_created");
+      socket.off("task_assigned");
+      socket.off("task_completed");
+      socket.off("complaint_raised");
+      socket.off("grace_confirmed");
+      socket.off("task_delay_warning");
+      socket.off("extra_time_granted");
+      socket.off("task_reassigned");
+      socket.off("receive_message"); // 🔥 important
+    };
   }, [helperId]);
   // 🔹 Place Bid
   const placeBid = (taskId) => {
@@ -350,50 +406,65 @@ function DeliveryDashboard() {
       <div className="container">
         <div className="dashboard-card">
           {/* 🔔 ASSIGNMENT NOTIFICATION */}
-          {activeTab === "assigned" && notification && (
-            <div className="assignment-notification">
-              <h4>🎉 You’ve been assigned a new delivery! 🚚</h4>
+          {activeTab === "assigned" &&
+            (assignedTasks.length === 0 ? (
+              <p className="text-muted">No assigned tasks</p>
+            ) : (
+              assignedTasks.map((task) => (
+                <div key={task._id} className="task-card">
+                  {/* ✅ TITLE (CENTER) */}
+                  <div className="task-title center"> {task.title}</div>
 
-              <hr />
+                  {/* ✅ DESCRIPTION (CENTER) */}
+                  <div className="task-desc center">
+                    <strong> {task.description || "No description"}</strong>
+                  </div>
 
-              <p>
-                <strong>📦 Task:</strong> {notification.title}
-              </p>
-              <p>
-                <strong>📍 Pickup:</strong> {notification.pickupAddress}
-              </p>
-              <p>
-                <strong>🏁 Drop:</strong> {notification.dropAddress}
-              </p>
-              
+                  {/* ✅ PICKUP + DROP (BLUE BOX) */}
+                  <div className="location-box">
+                    <div className="location-item">
+                      📍 <strong>Pickup:</strong> {task.pickupAddress}
+                    </div>
 
-              {notification.description && (
-                <p>
-                  <strong>📝 Description:</strong> {notification.description}
-                </p>
-              )}
+                    <div className="location-item">
+                      🏁 <strong>Drop:</strong> {task.dropAddress}
+                    </div>
+                  </div>
 
-              <hr />
+                  {/* ✅ ACTION BUTTONS (CENTER) */}
+                  <div className="action-buttons">
+                    <button
+                      className="complete-btn"
+                      onClick={() => verifyOTP(task._id)}
+                    >
+                      Complete
+                    </button>
 
-              <p>
-                <strong>👤 Customer Name:</strong>{" "}
-                {notification.userName || "N/A"}
-              </p>
-              <p>
-                <strong>📧 Customer Email:</strong>{" "}
-                {notification.userEmail || "N/A"}
-              </p>
+                    <button className="chat-btn" onClick={() => openChat(task)}>
+                      💬 Chat
+                      {unreadCounts[task._id] > 0 && (
+                        <span className="chat-badge">
+                          {unreadCounts[task._id]}
+                        </span>
+                      )}
+                    </button>
+                  </div>
 
-              <div className="complete-btn-container">
-                <button
-                  className="complete-btn"
-                  onClick={() => verifyOTP(notification._id)}
-                >
-                  ✅ Complete Delivery
-                </button>
-              </div>
-            </div>
-          )}
+                  <hr />
+
+                  {/* ✅ CUSTOMER INFO (SIDE BY SIDE) */}
+                  <div className="customer-info">
+                    <div>
+                      👤 <strong>{task.userName || "N/A"}</strong>
+                    </div>
+
+                    <div>
+                      📧<strong> {task.userEmail || "N/A"}</strong>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ))}
 
           {/* 🟢 OPEN TASKS */}
           {activeTab === "open" &&
@@ -424,8 +495,6 @@ function DeliveryDashboard() {
                   {/* RIGHT SIDE */}
                   <div className="task-right">
                     <div className="right-content">
-                      
-
                       <button
                         className="btn btn-primary bid-btn"
                         onClick={() => placeBid(task._id)}
@@ -493,6 +562,41 @@ function DeliveryDashboard() {
                 <button onClick={() => setGraceConfirmPopup(null)}>
                   Got it 👍
                 </button>
+              </div>
+            </div>
+          )}
+
+          {chatOpen && (
+            <div className="chat-sidebar">
+              <div className="chat-header">
+                💬 Chat
+                <button onClick={() => setChatOpen(false)}>✖</button>
+              </div>
+
+              <div className="chat-messages">
+                {(messages[currentTask?._id] || []).map((msg, i) => (
+                  <div
+                    key={i}
+                    className={msg.sender === myId ? "my-msg" : "other-msg"}
+                  >
+                    <div className="msg-text">{msg.message}</div>
+                    <div className="msg-time">
+                      {new Date(msg.time || Date.now()).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef}></div>
+              </div>
+              <div className="chat-input">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type message..."
+                />
+                <button onClick={sendMessage}>Send</button>
               </div>
             </div>
           )}

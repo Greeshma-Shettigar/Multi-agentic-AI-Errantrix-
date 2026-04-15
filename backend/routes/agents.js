@@ -29,12 +29,26 @@ router.post("/update-location", async (req, res) => {
       return res.status(400).json({ message: "Missing data" });
     }
 
+    let lat = Number(latitude);
+    let lng = Number(longitude);
+
+    // 🔥 SIMULATE DIFFERENT LOCATIONS (USE REAL AGENT IDs)
+    if (agentId === "6940f32dbe47626d72683fbf") {
+      lat += 0.01; // ~1km shift
+      lng += 0.01;
+    }
+
+    if (agentId === "6946179d0b9d97fb7c730d1c") {
+      lat -= 0.008; // ~800m shift
+      lng -= 0.008;
+    }
+
     const updatedAgent = await Agent.findOneAndUpdate(
       { agentId },
       {
         location: {
           type: "Point",
-          coordinates: [Number(longitude), Number(latitude)],
+          coordinates: [lng, lat], // ✅ correct order
         },
       },
       { new: true },
@@ -46,7 +60,6 @@ router.post("/update-location", async (req, res) => {
 
     res.json(updatedAgent);
   } catch (err) {
-    console.error("UPDATE LOCATION ERROR ❌", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -62,8 +75,6 @@ const generateNearbyLocation = (pickupLat, pickupLng) => {
 
 router.post("/bid", async (req, res) => {
   try {
-    console.log("🔥 BID API HIT 🔥", req.body);
-
     // { agentId, taskId, price, eta }
     const { agentId, taskId, price, eta } = req.body;
 
@@ -81,7 +92,7 @@ router.post("/bid", async (req, res) => {
 
     // 🔥 NEW: Helper Agent availability + feasibility check
     const helperDecision = await helperAgent(task, { agentId });
-    console.log("Calling Helper Agent...");
+
     if (!helperDecision.allowed) {
       return res.status(400).json({
         message: helperDecision.reason,
@@ -102,9 +113,9 @@ router.post("/bid", async (req, res) => {
     }
 
     // 📝 Add bid
-   const [lng, lat] = task.pickupLocation.coordinates;
+    const [lng, lat] = task.pickupLocation.coordinates;
 
-   const location = generateNearbyLocation(lat, lng);
+    const location = generateNearbyLocation(lat, lng);
 
     task.bids.push({
       agentId,
@@ -114,8 +125,6 @@ router.post("/bid", async (req, res) => {
       lng: location.lng,
     });
 
-    console.log("📍 Bid Location:", location);
-
     await task.save();
 
     // 🔥 POPULATE BEFORE EMIT
@@ -124,7 +133,7 @@ router.post("/bid", async (req, res) => {
       "fullName email",
     );
 
-   // req.app.locals.io.emit("task_assigned", populatedTask);
+    // req.app.locals.io.emit("task_assigned", populatedTask);
 
     // 🔔 Realtime update (UI)
     req.app.locals.io.emit("new_bid", {
@@ -134,35 +143,29 @@ router.post("/bid", async (req, res) => {
       eta,
     });
 
-    
     // 🤖 AUTO-ASSIGN (when 2 or more bids)
     if (task.bids.length >= 2 && task.status === "negotiating") {
       let winner;
 
       // 🔥 DECIDE AGENT BASED ON MODE
       if (task.mode === "priority") {
-        console.log("🚀 Routing Agent Triggered");
-
         const [pickupLng, pickupLat] = task.pickupLocation.coordinates;
         const [dropLng, dropLat] = task.dropLocation.coordinates;
 
-         winner = routingAgent(
+        winner = routingAgent(
           task.bids,
           { lat: pickupLat, lng: pickupLng },
           { lat: dropLat, lng: dropLng },
         );
       } else {
-        console.log("💰 Negotiation Agent Triggered");
-
         winner = await runNegotiationAgent(task.bids);
       }
-       const winnerData = winner._doc || winner;
+      const winnerData = winner._doc || winner;
       if (winnerData && winnerData.agentId) {
-       // task.assignedTo = new mongoose.Types.ObjectId(winner.agentId);
-      
+        // task.assignedTo = new mongoose.Types.ObjectId(winner.agentId);
 
-       task.assignedTo = new mongoose.Types.ObjectId(winnerData.agentId);
-       task.assignedDistance = winnerData.distance;
+        task.assignedTo = new mongoose.Types.ObjectId(winnerData.agentId);
+        task.assignedDistance = winnerData.distance;
         task.status = "assigned";
         task.negotiationStatus = "completed";
         task.assignedAt = new Date();
@@ -178,11 +181,8 @@ router.post("/bid", async (req, res) => {
           "assignedTo",
           "fullName email",
         );
-        console.log("🏆 FINAL WINNER DATA:", winnerData);
 
         req.app.locals.io.emit("task_assigned", populatedTask);
-
-        console.log("🏆 Task assigned to:", winnerData.agentId);
 
         return res.json({
           message:
@@ -201,7 +201,6 @@ router.post("/bid", async (req, res) => {
       task,
     });
   } catch (err) {
-    console.error("BID ERROR ❌", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -232,8 +231,6 @@ router.post("/user-decision", async (req, res) => {
 
   // 🔥 HELPER IGNORE OR USER REASSIGN → SAME RESULT
   if (decision === "helper_reject" || decision === "user_reassign") {
-    console.log("🔄 REOPENING TASK FOR BIDDING");
-
     task.status = "planned"; // 🔥 VERY IMPORTANT
     task.assignedTo = null;
 
@@ -286,7 +283,7 @@ router.post("/grace", async (req, res) => {
     }
 
     // 🔥 Extend time
-  task.assignedAt = new Date(Date.now() + minutes * 60000);
+    task.assignedAt = new Date(Date.now() + minutes * 60000);
 
     // Reset warning
     task.warningSent = false;
@@ -297,7 +294,6 @@ router.post("/grace", async (req, res) => {
 
     res.json({ message: "Grace time added" });
   } catch (err) {
-     console.error("GRACE ERROR ❌", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -306,9 +302,6 @@ router.get("/list", async (req, res) => {
   const agents = await Agent.find().lean();
   res.json(agents);
 });
-
-
-
 
 router.post("/set-priority", async (req, res) => {
   try {
@@ -332,7 +325,6 @@ router.post("/set-priority", async (req, res) => {
 
     res.json({ message: "Priority mode enabled" });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -398,7 +390,6 @@ router.post("/accept/:taskId", async (req, res) => {
 
     res.json(updatedTask);
   } catch (err) {
-    console.error("ACCEPT TASK ERROR ❌", err);
     res.status(500).json({ message: err.message });
   }
 });

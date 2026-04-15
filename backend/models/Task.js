@@ -47,7 +47,7 @@ const TaskSchema = new mongoose.Schema(
       default: 12000, // 12km default geo-fence
     },
 
-    budget: { type: Number, required: true },
+    
 
     postedBy: {
       type: mongoose.Schema.Types.ObjectId,
