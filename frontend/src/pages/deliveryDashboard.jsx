@@ -72,10 +72,37 @@ function DeliveryDashboard() {
     }
   }, [assignedTasks]);
 
-  const openChat = (task) => {
+  const openChat = async (task) => {
     setCurrentTask(task);
     setChatOpen(true);
     //setMessages([]);
+
+     try {
+    // ✅ 1. Fetch old messages (DB persistence)
+    const res = await fetch(`http://localhost:5000/api/messages/${task._id}`);
+    const oldMessages = (await res.json()).sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+    );
+
+   // setMessages(oldMessages);  // load previous chat
+   setMessages((prev) => {
+     const existing = prev[task._id] || [];
+
+     const merged = [...existing, ...oldMessages];
+
+     const unique = merged.filter(
+       (msg, index, self) => index === self.findIndex((m) => m._id === msg._id),
+     );
+
+     return {
+       ...prev,
+       [task._id]: unique,
+     };
+   });
+
+  } catch (err) {
+    console.error("Failed to load messages:", err);
+  }
 
     socket.emit("join_task_room", task._id);
 
@@ -88,17 +115,24 @@ function DeliveryDashboard() {
   const sendMessage = () => {
     if (!input.trim()) return;
 
-    const msg = {
-      taskId: currentTask._id,
-      sender: localStorage.getItem("userId"),
-      message: input,
-    };
+     const msg = {
+       taskId: currentTask._id,
+       senderId: localStorage.getItem("userId"),
+       receiverId: currentTask.userId || currentTask.postedBy, // or assigned user
+       text: input,
+     };
 
     socket.emit("send_message", msg);
 
    
     setInput("");
   };
+
+  useEffect(() => {
+    if (myId) {
+      socket.emit("join_user", myId);
+    }
+  }, [myId]);
 
   const handleIgnore = async (taskId) => {
     try {
@@ -119,11 +153,21 @@ function DeliveryDashboard() {
     }
   };
   const handleReceiveMessage = (data) => {
-    setMessages((prev) => ({
-      ...prev,
-      [data.taskId]: [...(prev[data.taskId] || []), data],
-    }));
+    setMessages((prev) => {
+      const taskMessages = prev[data.taskId] || [];
+      console.log("Incoming message:", data);
 
+      // ✅ Avoid duplicate messages (important after DB + socket combo)
+      const exists = taskMessages.some((m) => m._id === data._id);
+      if (exists) return prev;
+
+      return {
+        ...prev,
+        [data.taskId]: [...taskMessages, data],
+      };
+    });
+
+    // ✅ Unread count (only if chat not open)
     if (!currentTask || data.taskId !== currentTask._id) {
       setUnreadCounts((prev) => ({
         ...prev,
@@ -321,7 +365,7 @@ function DeliveryDashboard() {
       socket.off("task_delay_warning");
       socket.off("extra_time_granted");
       socket.off("task_reassigned");
-      socket.off("receive_message"); // 🔥 important
+      socket.off("receive_message", handleReceiveMessage); // 🔥 important
     };
   }, [helperId]);
   // 🔹 Place Bid
@@ -577,11 +621,11 @@ function DeliveryDashboard() {
                 {(messages[currentTask?._id] || []).map((msg, i) => (
                   <div
                     key={i}
-                    className={msg.sender === myId ? "my-msg" : "other-msg"}
+                    className={msg.senderId === myId ? "my-msg" : "other-msg"}
                   >
-                    <div className="msg-text">{msg.message}</div>
+                    <div className="msg-text">{msg.text}</div>
                     <div className="msg-time">
-                      {new Date(msg.time || Date.now()).toLocaleTimeString([], {
+                      {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}

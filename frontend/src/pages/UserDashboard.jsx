@@ -39,6 +39,7 @@ export default function UserDashboard() {
   const [messages, setMessages] = useState({});
   const [newMessage, setNewMessage] = useState("");
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [confirmPopup, setConfirmPopup] = useState(null);
   const messagesEndRef = useRef(null);
 
   const showAlert = (type, message) => {
@@ -79,6 +80,7 @@ export default function UserDashboard() {
     }
   };
 
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -87,14 +89,46 @@ export default function UserDashboard() {
     if (userId) fetchTasks();
   }, [userId]);
 
+  useEffect(() => {
+    if (userId) {
+      socket.emit("join_user", userId);
+    }
+  }, [userId]);
+
   // 🔹 Handle input change
   const handleChange = (e) => {
     setTask({ ...task, [e.target.name]: e.target.value });
   };
 
-  const openChat = (task) => {
+  const openChat = async (task) => {
     setCurrentTask(task);
     setShowChat(true);
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/messages/${task._id}`);
+      const oldMessages = (await res.json()).sort(
+        (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+      );
+
+      // ✅ IMPORTANT: keep your structure
+      setMessages((prev) => {
+        const existing = prev[task._id] || [];
+
+        const merged = [...existing, ...oldMessages];
+
+        const unique = merged.filter(
+          (msg, index, self) =>
+            index === self.findIndex((m) => m._id === msg._id),
+        );
+
+        return {
+          ...prev,
+          [task._id]: unique,
+        };
+      });
+    } catch (err) {
+      console.error("Failed to load messages:", err);
+    }
 
     socket.emit("join_task_room", task._id);
 
@@ -109,8 +143,9 @@ export default function UserDashboard() {
 
     const msg = {
       taskId: currentTask._id,
-      sender: userId,
-      message: newMessage,
+      senderId: userId,
+      receiverId: currentTask.assignedTo?._id || currentTask.postedBy, 
+      text: newMessage,
     };
 
     socket.emit("send_message", msg);
@@ -250,13 +285,19 @@ export default function UserDashboard() {
 
     // ✅ CHAT MESSAGE
 const handleReceiveMessage = (data) => {
-  // ✅ ALWAYS store message
-  setMessages((prev) => ({
-    ...prev,
-    [data.taskId]: [...(prev[data.taskId] || []), data],
-  }));
+  setMessages((prev) => {
+    const taskMessages = prev[data.taskId] || [];
+    console.log("Incoming message:", data);
 
-  // ✅ unread logic
+    const exists = taskMessages.some((m) => m._id === data._id);
+    if (exists) return prev;
+
+    return {
+      ...prev,
+      [data.taskId]: [...taskMessages, data],
+    };
+  });
+
   if (!currentTask || data.taskId !== currentTask._id) {
     setUnreadCounts((prev) => ({
       ...prev,
@@ -477,13 +518,11 @@ const handleReceiveMessage = (data) => {
                             onClick={(e) => {
                               e.stopPropagation(); // prevents accidental triggers
 
-                              const confirmAction = window.confirm(
-                                "Are you sure you want to complete this task?",
-                              );
-
-                              if (confirmAction) {
-                                completeTask(t._id);
-                              }
+                              setConfirmPopup({
+                                taskId: t._id,
+                                message:
+                                  "Are you sure you want to complete this task?",
+                              });
                             }}
                           >
                             Complete
@@ -631,6 +670,35 @@ const handleReceiveMessage = (data) => {
         </div>
       )}
 
+      {confirmPopup && (
+        <div className="popup-overlay">
+          <div className="popup-card">
+            <h3>⚠ Confirm Action</h3>
+
+            <p>{confirmPopup.message}</p>
+
+            <div className="popup-actions">
+              <button
+                className="confirm-btn"
+                onClick={() => {
+                  completeTask(confirmPopup.taskId);
+                  setConfirmPopup(null);
+                }}
+              >
+                ✅ Yes, Complete
+              </button>
+
+              <button
+                className="cancel-btn"
+                onClick={() => setConfirmPopup(null)}
+              >
+                ❌ Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {errorPopup && (
         <div className="popup-overlay">
           <div className="popup-card">
@@ -659,14 +727,17 @@ const handleReceiveMessage = (data) => {
             {(messages[currentTask?._id] || []).map((msg, i) => (
               <div
                 key={i}
-                className={msg.sender === userId ? "my-msg" : "other-msg"}
+                className={msg.senderId === userId ? "my-msg" : "other-msg"}
               >
-                <div className="msg-text">{msg.message}</div>
+                <div className="msg-text">{msg.text}</div>
                 <div className="msg-time">
-                  {new Date(msg.time || Date.now()).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {new Date(msg.createdAt || Date.now()).toLocaleTimeString(
+                    [],
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
                 </div>
               </div>
             ))}

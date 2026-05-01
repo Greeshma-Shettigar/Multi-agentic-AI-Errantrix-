@@ -61,7 +61,7 @@ io.on("connection", (socket) => {
       });
 
       // ✅ 2. SEND TO TASK ROOM (live chat open users)
-      io.to(taskId).emit("receive_message", message);
+      io.to(taskId).emit("receive_message", message.toObject());
 
       // ✅ 3. SEND TO RECEIVER PERSONAL ROOM (even if chat closed)
       io.to(receiverId).emit("receive_message", message);
