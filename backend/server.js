@@ -14,15 +14,20 @@ const agentRoutes = require("./routes/agents");
 const authRoute = require("./routes/auth"); // Auth route imported
 const complaintRoutes = require("./routes/complaint"); 
 const monitoringAgent = require("./agents/monitoringAgent");
+const messageRoutes = require("./routes/messageRoutes");
+const Message = require("./models/Message");
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 
+
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api", messageRoutes);
 
 // expose io to routes via app.locals
 app.locals.io = io;
@@ -30,18 +35,42 @@ app.locals.io = io;
 io.on("connection", (socket) => {
   console.log("🟢 Connected:", socket.id);
 
-  // 📌 Join task room
-  socket.on("join_task_room", (taskId) => {
-    socket.join(taskId);
-    console.log("Joined room:", taskId);
+  // ✅ Join personal room (for receiving messages anytime)
+  socket.on("join_user", (userId) => {
+    socket.join(userId);
+    console.log("👤 Joined user room:", userId);
   });
 
-  // 💬 Send message
-  socket.on("send_message", (data) => {
-    console.log("Message:", data);
+  // ✅ Join task room (when chat is opened)
+  socket.on("join_task_room", (taskId) => {
+    socket.join(taskId);
+    console.log("📌 Joined task room:", taskId);
+  });
 
-    // send to all users in same task room
-    io.to(data.taskId).emit("receive_message", data);
+  // 💬 SEND MESSAGE
+  socket.on("send_message", async (data) => {
+    const { taskId, senderId, receiverId, text } = data;
+
+    try {
+      // ✅ 1. SAVE TO DB (PERSISTENCE)
+      const message = await Message.create({
+        taskId,
+        senderId,
+        receiverId,
+        text,
+      });
+
+      // ✅ 2. SEND TO TASK ROOM (live chat open users)
+      io.to(taskId).emit("receive_message", message);
+
+      // ✅ 3. SEND TO RECEIVER PERSONAL ROOM (even if chat closed)
+      io.to(receiverId).emit("receive_message", message);
+
+      // ✅ 4. SEND BACK TO SENDER (instant UI update)
+      socket.emit("receive_message", message);
+    } catch (err) {
+      console.error("❌ Message error:", err);
+    }
   });
 
   socket.on("disconnect", () => {

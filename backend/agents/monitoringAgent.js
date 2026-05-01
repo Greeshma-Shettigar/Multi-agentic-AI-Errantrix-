@@ -14,6 +14,10 @@ const monitoringAgent = async (io) => {
   });
 
   for (const task of tasks) {
+    if (task.complaintRaised) {
+  console.log("⛔ Skipping task due to complaint:", task.title);
+  continue;
+}
     const idleTime = now - new Date(task.assignedAt);
 
     // 🔥 ADD THIS LOG HERE (inside loop)

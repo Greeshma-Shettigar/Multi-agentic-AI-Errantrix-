@@ -499,7 +499,7 @@ function DeliveryDashboard() {
                         className="btn btn-primary bid-btn"
                         onClick={() => placeBid(task._id)}
                       >
-                        Place Bid
+                        Accept Task
                       </button>
                     </div>
                   </div>

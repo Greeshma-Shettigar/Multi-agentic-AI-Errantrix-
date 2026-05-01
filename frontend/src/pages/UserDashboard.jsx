@@ -534,13 +534,13 @@ const handleReceiveMessage = (data) => {
 
       {showComplaint && (
         <div className="complaint-overlay">
-          <div className="complaint-card">
-            <h2 className="complaint-title">🆘 Need Help?</h2>
+          <div className="complaint-card glass">
+            <h2 className="complaint-title"> Need Help?</h2>
             <p className="complaint-subtitle">
               Having trouble with a delivery? Tell us what happened!
             </p>
 
-            <label className="complaint-label">📦 Task Name</label>
+            <label className="complaint-label"> Task Name</label>
             <input
               className="complaint-input"
               placeholder="Example: Grocery Pickup"
@@ -552,7 +552,7 @@ const handleReceiveMessage = (data) => {
               💡 Tip: Enter the exact task title to auto-fill delivery partner
               details.
             </p>
-            <label className="complaint-label">📝 What went wrong?</label>
+            <label className="complaint-label"> What went wrong?</label>
             <textarea
               className="complaint-textarea"
               placeholder="Describe the issue..."
@@ -560,7 +560,7 @@ const handleReceiveMessage = (data) => {
               onChange={(e) => setDescription(e.target.value)}
             />
 
-            <label className="complaint-label">🚚 Delivery Partner Name</label>
+            <label className="complaint-label"> Delivery Partner Name</label>
             <input
               className="complaint-input"
               placeholder="Enter delivery partner name (optional)"
@@ -568,20 +568,20 @@ const handleReceiveMessage = (data) => {
               onChange={(e) => setPartnerName(e.target.value)}
             />
 
-            <label className="complaint-label">📧 Delivery Partner Email</label>
+            <label className="complaint-label"> Delivery Partner Email</label>
             <input
               className="complaint-input"
               placeholder="Enter delivery partner email (optional)"
               value={partnerEmail}
               onChange={(e) => setPartnerEmail(e.target.value)}
             />
-            <div className="complaint-buttons">
-              <button className="complaint-submit" onClick={submitComplaint}>
+            <div className="button-group">
+              <button className="submit-btn" onClick={submitComplaint}>
                 🚨 Submit Complaint
               </button>
 
               <button
-                className="complaint-close"
+                className="cancel-btn"
                 onClick={() => setShowComplaint(false)}
               >
                 ✖ Cancel
