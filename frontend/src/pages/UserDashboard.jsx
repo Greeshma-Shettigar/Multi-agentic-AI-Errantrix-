@@ -271,8 +271,14 @@ export default function UserDashboard() {
     };
 
     // ✅ TASK COMPLETED
-    const handleTaskCompleted = (completedTask) => {
-      setTasks((prev) => prev.filter((task) => task._id !== completedTask._id));
+    const handleTaskCompleted = (updatedTask) => {
+      setTasks((prev) =>
+        prev.map((task) =>
+          task._id === updatedTask._id
+            ? { ...task, ...updatedTask } // ✅ merge updated fields
+            : task,
+        ),
+      );
     };
 
     // ✅ USER DECISION

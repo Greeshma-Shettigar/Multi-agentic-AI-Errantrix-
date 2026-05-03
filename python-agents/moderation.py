@@ -18,18 +18,34 @@ print("Model loaded successfully!")
 
 # 🚨 Illegal keywords list
 ILLEGAL_KEYWORDS = [
-    "kill",
-    "murder",
-    "poison",
-    "drug",
-    "cocaine",
-    "heroin",
-    "gun",
-    "weapon",
-    "bomb",
-    "explosive",
-    "assassinate",
-    "attack"
+    #  Violence / Crime
+    "kill", "murder", "assassinate", "attack", "stab", "shoot",
+    "kidnap", "abduct", "torture", "threat", "violence",
+
+    # Weapons / Explosives
+    "gun", "pistol", "rifle", "weapon", "bomb", "explosive",
+    "grenade", "ammo", "ammunition", "detonator",
+
+    #  Drugs / Narcotics
+    "drug", "cocaine", "heroin", "weed", "marijuana",
+    "lsd", "mdma", "ecstasy", "meth", "opium", "charas", "ganja",
+
+    # Alcohol / Substances (add this as you asked)
+    "alcohol", "liquor", "beer", "vodka", "whiskey", "rum",
+    "wine", "drunk", "intoxicated",
+
+    #  Poison / Harm
+    "poison", "toxic", "overdose", "suicide", "self-harm",
+
+    #  Illegal Activities
+    "smuggling", "blackmail", "fraud", "scam", "steal",
+    "robbery", "hack", "hacking", "phishing",
+
+    #  Abuse / Harmful intent
+    "abuse", "harass", "bully", "rape", "molest",
+
+    #  Genz / risky slang (carefully chosen)
+    "get high", "dope", "stash", "hitman", "deal drugs"
 ]
 
 class TaskInput(BaseModel):

@@ -299,24 +299,27 @@ function DeliveryDashboard() {
     });
 
     socket.on("task_assigned", (task) => {
-      if (
-        String(task.assignedTo?._id || task.assignedTo) === String(helperId)
-      ) {
-        setTasks((prev) => {
-          const exists = prev.find((t) => t._id === task._id);
+  const assignedId = task.assignedTo?._id || task.assignedTo;
 
-          if (exists) {
-            return prev.map((t) =>
-              t._id === task._id ? { ...t, ...task } : t,
-            );
-          }
+  // ✅ If THIS helper got the task
+  if (String(assignedId) === String(helperId)) {
+    
+    // ➡️ REMOVE from open tasks
+    setOpenTasks((prev) => prev.filter((t) => t._id !== task._id));
 
-          return [...prev, task];
-        });
+    // ➡️ ADD to assigned tasks
+    setAssignedTasks((prev) => {
+      const exists = prev.find((t) => t._id === task._id);
+      if (exists) return prev;
 
-        fetchTasks();
-      }
+      return [task, ...prev];
     });
+
+  } else {
+    // ❌ If assigned to someone else → remove from open list
+    setOpenTasks((prev) => prev.filter((t) => t._id !== task._id));
+  }
+});
 
     socket.on("task_completed", (task) => {
       if (task.userConfirmed === true) {
